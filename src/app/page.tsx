@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts'
-import { Calendar, TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Wifi, WifiOff, Cloud, CloudOff } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
+import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff } from 'lucide-react'
 import { supabase, salesAPI } from '../lib/supabase'
 
 interface Sale {
@@ -71,10 +71,8 @@ export default function BarSalesManager() {
 
   useEffect(() => {
     if (!isAuthenticated) return
-
     initializeData()
     const unsubscribe = setupRealtimeSubscription()
-
     return () => {
       if (unsubscribe) unsubscribe()
     }
@@ -87,7 +85,6 @@ export default function BarSalesManager() {
       setSales(salesData)
       setIsConnected(true)
       setLastSync(new Date())
-
       const savedTargets = JSON.parse(localStorage.getItem('barTargets') || '{}')
       if (Object.keys(savedTargets).length > 0) {
         setTargets(savedTargets)
@@ -95,7 +92,6 @@ export default function BarSalesManager() {
     } catch (error) {
       console.error('データの初期化に失敗:', error)
       setIsConnected(false)
-      
       const localSales = JSON.parse(localStorage.getItem('barSalesData') || '[]')
       const localTargets = JSON.parse(localStorage.getItem('barTargets') || '{}')
       setSales(localSales)
@@ -110,7 +106,6 @@ export default function BarSalesManager() {
     return salesAPI.subscribeToChanges((payload) => {
       console.log('リアルタイム更新を受信:', payload)
       setLastSync(new Date())
-      
       if (payload.eventType === 'INSERT' && payload.new) {
         setSales(prev => [payload.new as Sale, ...prev])
       } else if (payload.eventType === 'UPDATE' && payload.new) {
@@ -131,14 +126,6 @@ export default function BarSalesManager() {
     localStorage.setItem('barTargets', JSON.stringify(targets))
   }, [targets])
 
-  useEffect(() => {
-    localStorage.setItem('barDarkMode', JSON.stringify(darkMode))
-  }, [darkMode])
-
-  useEffect(() => {
-    localStorage.setItem('barAuthData', JSON.stringify({ isAuthenticated }))
-  }, [isAuthenticated])
-
   const handleLogin = () => {
     if (loginData.password === SIMPLE_PASSWORD) {
       setIsAuthenticated(true)
@@ -154,7 +141,6 @@ export default function BarSalesManager() {
     setCurrentUser(null)
     setShowLogin(true)
     setLoginData({ password: '' })
-    localStorage.removeItem('barAuthData')
   }
 
   const getTargetValue = (key: keyof typeof targets) => {
@@ -181,7 +167,6 @@ export default function BarSalesManager() {
     }
 
     setIsLoading(true)
-    
     const saleData = {
       date: formData.date,
       day_of_week: getDayOfWeek(formData.date),
@@ -205,21 +190,17 @@ export default function BarSalesManager() {
       } else {
         await salesAPI.create(saleData)
       }
-
       setIsConnected(true)
       setLastSync(new Date())
     } catch (error) {
       console.error('データの保存に失敗:', error)
-      alert('データの保存に失敗しました。ローカルに保存されます。')
       setIsConnected(false)
-      
       const newSale: Sale = { 
         ...saleData, 
         id: editingId || Date.now().toString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
-      
       if (editingId) {
         setSales(prev => prev.map(sale => sale.id === editingId ? newSale : sale))
         setEditingId(null)
@@ -259,7 +240,6 @@ export default function BarSalesManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('このデータを削除しますか？')) return
-
     setIsLoading(true)
     try {
       await salesAPI.delete(id)
@@ -267,14 +247,9 @@ export default function BarSalesManager() {
       setLastSync(new Date())
     } catch (error) {
       console.error('削除に失敗:', error)
-      alert('削除に失敗しました。')
       setIsConnected(false)
     }
     setIsLoading(false)
-  }
-
-  const forceSync = async () => {
-    await initializeData()
   }
 
   const stats = useMemo(() => {
@@ -294,7 +269,6 @@ export default function BarSalesManager() {
     const totalProfit = totalSales - totalExpenses
     const totalGroups = sales.reduce((sum, sale) => sum + sale.group_count, 0)
     const averageSpend = totalGroups > 0 ? totalSales / totalGroups : 0
-    const bestDay = sales.length > 0 ? sales.reduce((best, sale) => sale.total_sales > best.total_sales ? sale : best, sales[0]) : null
 
     const dates = [...new Set(sales.map(sale => sale.date))]
     const dayCount = dates.length || 1
@@ -304,7 +278,7 @@ export default function BarSalesManager() {
 
     return {
       totalSales, totalCardSales, totalPaypaySales, totalCashSales,
-      totalExpenses, totalProfit, totalGroups, averageSpend, bestDay,
+      totalExpenses, totalProfit, totalGroups, averageSpend,
       dailyAverage, weeklyAverage, monthlyAverage,
       dailyProfit: totalProfit / dayCount,
       cardRatio: totalSales > 0 ? (totalCardSales / totalSales) * 100 : 0,
@@ -346,25 +320,6 @@ export default function BarSalesManager() {
     }))
   }, [sales])
 
-  const exportToCSV = () => {
-    const headers = ['日付', '曜日', '組数', '売上', '平均単価', 'カード決済', 'PayPay決済', '現金', '経費', '利益', 'イベント', 'メモ', '更新者']
-    const csvContent = [
-      headers.join(','),
-      ...sales.map(sale => [
-        sale.date, sale.day_of_week, sale.group_count, sale.total_sales,
-        Math.round(sale.average_spend || 0), sale.card_sales || 0, sale.paypay_sales || 0,
-        sale.cash_sales || 0, sale.expenses || 0, sale.profit || 0,
-        sale.event || '', sale.notes || '', sale.updated_by || ''
-      ].join(','))
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `bar_sales_data_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-  }
-
   if (!isAuthenticated && showLogin) {
     return (
       <div className={`min-h-screen ${theme.bg} flex items-center justify-center p-4`}>
@@ -374,7 +329,6 @@ export default function BarSalesManager() {
             <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>バー売上管理システム</h1>
             <p className={`${theme.textSecondary}`}>🚀 Supabase リアルタイム同期</p>
           </div>
-          
           <div className="space-y-4">
             <div>
               <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>パスワード</label>
@@ -387,7 +341,6 @@ export default function BarSalesManager() {
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               />
             </div>
-            
             <button
               onClick={handleLogin}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
@@ -395,8 +348,7 @@ export default function BarSalesManager() {
               ログイン
             </button>
           </div>
-
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900 rounded-md">
+          <div className="mt-6 p-4 bg-blue-50 rounded-md">
             <p className={`text-xs ${theme.textSecondary} text-center`}>💡 パスワード: BarSales2024</p>
           </div>
         </div>
@@ -426,24 +378,11 @@ export default function BarSalesManager() {
                   )}
                 </div>
               </div>
-              {lastSync && (
-                <p className={`text-xs ${theme.textSecondary} mt-1`}>
-                  最終同期: {lastSync.toLocaleTimeString('ja-JP')}
-                </p>
-              )}
             </div>
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
               <button
-                onClick={forceSync}
-                className={`p-2 rounded-lg border ${theme.border} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
-                title="手動同期"
-                disabled={isLoading}
-              >
-                <Wifi size={16} className={isConnected ? 'text-green-500' : 'text-gray-400'} />
-              </button>
-              <button
                 onClick={() => setDarkMode(!darkMode)}
-                className={`p-2 rounded-lg border ${theme.border} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
+                className={`p-2 rounded-lg border ${theme.border} hover:bg-gray-100 transition-colors`}
               >
                 {darkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-600" />}
               </button>
@@ -453,13 +392,6 @@ export default function BarSalesManager() {
               >
                 <Target size={16} />
                 <span className="hidden sm:inline">目標設定</span>
-              </button>
-              <button
-                onClick={exportToCSV}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
-              >
-                <Download size={16} />
-                <span className="hidden sm:inline">CSV出力</span>
               </button>
               <button
                 onClick={() => setShowForm(true)}
@@ -482,10 +414,9 @@ export default function BarSalesManager() {
         </div>
 
         <div className={`${theme.card} rounded-lg shadow-md mb-6`}>
-          <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <div className="flex border-b border-gray-200 overflow-x-auto">
             {[
               { key: 'overview', label: '概要', icon: BarChart3 },
-              { key: 'prediction', label: '予測分析', icon: Target },
               { key: 'data', label: 'データ一覧', icon: Activity }
             ].map(tab => (
               <button
@@ -536,13 +467,10 @@ export default function BarSalesManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               {[
                 { label: '総売上', value: stats.totalSales, color: 'green', icon: DollarSign, sub: `日割り: ¥${Math.round(stats.dailyAverage).toLocaleString()}` },
                 { label: '総組数', value: `${stats.totalGroups}組`, color: 'blue', icon: Users, sub: `日平均: ${Math.round(stats.totalGroups / Math.max(sales.length, 1))}組` },
-                { label: 'カード売上', value: stats.totalCardSales, color: 'purple', icon: '💳', sub: `${Math.round(stats.cardRatio)}%` },
-                { label: 'PayPay売上', value: stats.totalPaypaySales, color: 'red', icon: '📱', sub: `${Math.round(stats.paypayRatio)}%` },
-                { label: '現金売上', value: stats.totalCashSales, color: 'emerald', icon: '💵', sub: `${Math.round(stats.cashRatio)}%` },
                 { label: '総経費', value: stats.totalExpenses, color: 'red', icon: '📋', sub: `日平均: ¥${Math.round(stats.totalExpenses / Math.max(sales.length, 1)).toLocaleString()}` },
                 { label: '純利益', value: stats.totalProfit, color: 'indigo', icon: TrendingUp, sub: `日割り: ¥${Math.round(stats.dailyProfit).toLocaleString()}` }
               ].map((stat, index) => (
@@ -565,6 +493,21 @@ export default function BarSalesManager() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
               <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md`}>
+                <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>売上推移</h3>
+                <div className="h-64 sm:h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={timeSeriesData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="dateFormatted" fontSize={12} />
+                      <YAxis fontSize={12} />
+                      <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
+                      <Area type="monotone" dataKey="total_sales" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md`}>
                 <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>曜日別平均売上</h3>
                 <div className="h-64 sm:h-80">
                   <ResponsiveContainer width="100%" height="100%">
@@ -586,42 +529,21 @@ export default function BarSalesManager() {
           <div className={`${theme.card} rounded-lg shadow-md p-4 sm:p-6`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className={`text-base sm:text-lg font-semibold ${theme.text}`}>売上履歴</h3>
-              <div className="flex gap-2 items-center">
-                <div className="flex items-center gap-1">
-                  {isConnected ? (
-                    <span className="text-green-600 text-xs flex items-center gap-1">
-                      <Cloud size={12} />
-                      Supabase 同期済み
-                    </span>
-                  ) : (
-                    <span className="text-red-600 text-xs flex items-center gap-1">
-                      <CloudOff size={12} />
-                      オフライン
-                    </span>
-                  )}
-                </div>
-              </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
                     <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>日付</th>
                     <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>曜日</th>
                     <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>組数</th>
                     <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>売上</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>カード</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>PayPay</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>現金</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>経費</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>利益</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>更新者</th>
                     <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>操作</th>
                   </tr>
                 </thead>
                 <tbody className={`${theme.card} divide-y ${theme.border}`}>
                   {sales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
                       <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text}`}>
                         {new Date(sale.date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
                       </td>
@@ -630,31 +552,12 @@ export default function BarSalesManager() {
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-green-600">
                         ¥{sale.total_sales.toLocaleString()}
                       </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text} hidden sm:table-cell`}>
-                        ¥{(sale.card_sales || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-red-500 hidden sm:table-cell`}>
-                        ¥{(sale.paypay_sales || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text} hidden sm:table-cell`}>
-                        ¥{(sale.cash_sales || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-red-600 hidden sm:table-cell`}>
-                        ¥{(sale.expenses || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-indigo-600 hidden sm:table-cell`}>
-                        ¥{(sale.profit || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.textSecondary} hidden sm:table-cell`}>
-                        {sale.updated_by || '---'}
-                      </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm">
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEdit(sale)}
                             className="text-blue-600 hover:text-blue-900 transition-colors"
                             title="編集"
-                            disabled={isLoading}
                           >
                             <Edit3 size={14} />
                           </button>
@@ -662,7 +565,6 @@ export default function BarSalesManager() {
                             onClick={() => handleDelete(sale.id)}
                             className="text-red-600 hover:text-red-900 transition-colors"
                             title="削除"
-                            disabled={isLoading}
                           >
                             ×
                           </button>
@@ -740,7 +642,7 @@ export default function BarSalesManager() {
                         notes: ''
                       })
                     }}
-                    className={`w-full sm:w-auto px-6 py-3 border ${theme.border} rounded-md text-base font-medium ${theme.textSecondary} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                    className={`w-full sm:w-auto px-6 py-3 border ${theme.border} rounded-md text-base font-medium ${theme.textSecondary} hover:bg-gray-50 transition-colors`}
                     disabled={isLoading}
                   >
                     キャンセル
@@ -785,7 +687,7 @@ export default function BarSalesManager() {
                   <button
                     type="button"
                     onClick={() => setShowTargetForm(false)}
-                    className={`w-full sm:w-auto px-6 py-3 border ${theme.border} rounded-md text-base font-medium ${theme.textSecondary} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                    className={`w-full sm:w-auto px-6 py-3 border ${theme.border} rounded-md text-base font-medium ${theme.textSecondary} hover:bg-gray-50 transition-colors`}
                   >
                     キャンセル
                   </button>
@@ -804,19 +706,4 @@ export default function BarSalesManager() {
       </div>
     </div>
   )
-}ibold mb-4 ${theme.text}`}>売上推移</h3>
-                <div className="h-64 sm:h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={timeSeriesData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="dateFormatted" fontSize={12} />
-                      <YAxis fontSize={12} />
-                      <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
-                      <Area type="monotone" dataKey="total_sales" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md`}>
-                <h3 className={`text-base sm:text-lg font-sem
+}
