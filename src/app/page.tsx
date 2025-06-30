@@ -413,9 +413,9 @@ export default function BarSalesManager() {
                 </p>
                 <div className="flex items-center gap-1">
                   {isConnected ? (
-                    <Cloud size={16} className="text-green-500" title="オンライン同期" />
+                    <Cloud width={16} height={16} className="text-green-500" title="オンライン同期" />
                   ) : (
-                    <CloudOff size={16} className="text-red-500" title="オフライン" />
+                    <CloudOff width={16} height={16} className="text-red-500" title="オフライン" />
                   )}
                   {isLoading && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
