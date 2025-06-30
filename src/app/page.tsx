@@ -706,4 +706,4 @@ export default function BarSalesManager() {
       </div>
     </div>
   )
-}
+} // 修正完了
