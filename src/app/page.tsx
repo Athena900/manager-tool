@@ -397,7 +397,7 @@ export default function BarSalesManager() {
       </div>
     )
   }
-
+  
   return (
     <div className={`min-h-screen ${theme.bg} p-4 transition-colors duration-300`}>
       <div className="max-w-7xl mx-auto">
