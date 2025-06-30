@@ -71,9 +71,36 @@ export default function BarSalesManager() {
   useEffect(() => {
     if (!isAuthenticated) return
     initializeData()
-    const unsubscribe = setupRealtimeSubscription()
+    
+    // リアルタイム購読の設定
+    let subscription: any = null
+    const setupSubscription = async () => {
+      try {
+        subscription = salesAPI.subscribeToChanges((payload) => {
+          console.log('リアルタイム更新を受信:', payload)
+          setLastSync(new Date())
+          
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setSales(prev => [payload.new as Sale, ...prev])
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            setSales(prev => prev.map(sale => 
+              sale.id === payload.new.id ? payload.new as Sale : sale
+            ))
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setSales(prev => prev.filter(sale => sale.id !== payload.old.id))
+          }
+        })
+      } catch (error) {
+        console.error('リアルタイム購読の設定に失敗:', error)
+      }
+    }
+    
+    setupSubscription()
+    
     return () => {
-      if (unsubscribe) unsubscribe()
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe()
+      }
     }
   }, [isAuthenticated])
 
@@ -105,23 +132,6 @@ export default function BarSalesManager() {
       }
     }
     setIsLoading(false)
-  }
-
-  const setupRealtimeSubscription = () => {
-    return salesAPI.subscribeToChanges((payload) => {
-      console.log('リアルタイム更新を受信:', payload)
-      setLastSync(new Date())
-      
-      if (payload.eventType === 'INSERT' && payload.new) {
-        setSales(prev => [payload.new as Sale, ...prev])
-      } else if (payload.eventType === 'UPDATE' && payload.new) {
-        setSales(prev => prev.map(sale => 
-          sale.id === payload.new.id ? payload.new as Sale : sale
-        ))
-      } else if (payload.eventType === 'DELETE' && payload.old) {
-        setSales(prev => prev.filter(sale => sale.id !== payload.old.id))
-      }
-    })
   }
 
   useEffect(() => {
@@ -357,7 +367,7 @@ export default function BarSalesManager() {
         <div className={`${theme.card} rounded-lg shadow-lg p-8 w-full max-w-md`}>
           <div className="text-center mb-8">
             <Lock className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-            <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>バー売上管理システム</h1>
+            <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>バー売上管理システム - 本格版</h1>
             <p className={`${theme.textSecondary}`}>🚀 Supabase リアルタイム同期</p>
           </div>
           
@@ -396,7 +406,7 @@ export default function BarSalesManager() {
         <div className={`${theme.card} rounded-lg shadow-md p-4 sm:p-6 mb-6`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>バー売上管理ツール</h1>
+              <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>バー売上管理ツール - 本格版</h1>
               <div className="flex items-center gap-2 mt-2">
                 <p className={`${theme.textSecondary} text-sm sm:text-base`}>
                   🚀 Supabase リアルタイム同期 | {currentUser?.name}
@@ -805,4 +815,3 @@ export default function BarSalesManager() {
     </div>
   )
 }
-
