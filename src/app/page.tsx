@@ -292,7 +292,7 @@ export default function BarSalesManager() {
     const totalGroups = sales.reduce((sum, sale) => sum + sale.group_count, 0)
     const averageSpend = totalGroups > 0 ? totalSales / totalGroups : 0
 
-    const dates = [...new Set(sales.map(sale => sale.date))]
+    const dates = sales.map(sale => sale.date).filter((date, index, array) => array.indexOf(date) === index)
     const dayCount = dates.length || 1
     const dailyAverage = totalSales / dayCount
     const weeklyAverage = totalSales / (dayCount / 7)
