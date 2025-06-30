@@ -33,6 +33,7 @@ interface FormData {
   expenses: string
   event: string
   notes: string
+  updatedBy: string
 }
 
 export default function BarSalesManager() {
@@ -56,7 +57,8 @@ export default function BarSalesManager() {
     paypaySales: '',
     expenses: '',
     event: '',
-    notes: ''
+    notes: '',
+    updatedBy: ''
   })
 
   const [targets, setTargets] = useState({
@@ -72,7 +74,6 @@ export default function BarSalesManager() {
     if (!isAuthenticated) return
     initializeData()
     
-    // リアルタイム購読の設定
     let subscription: any = null
     const setupSubscription = async () => {
       try {
@@ -198,7 +199,7 @@ export default function BarSalesManager() {
       profit: parseFloat(formData.totalSales) - (parseFloat(formData.expenses) || 0),
       event: formData.event || null,
       notes: formData.notes || null,
-      updated_by: currentUser?.name || 'バースタッフ'
+      updated_by: formData.updatedBy || 'スタッフ'
     }
 
     try {
@@ -235,7 +236,8 @@ export default function BarSalesManager() {
       paypaySales: '',
       expenses: '',
       event: '',
-      notes: ''
+      notes: '',
+      updatedBy: ''
     })
     setShowForm(false)
     setIsLoading(false)
@@ -250,7 +252,8 @@ export default function BarSalesManager() {
       paypaySales: (sale.paypay_sales || 0).toString(),
       expenses: (sale.expenses || 0).toString(),
       event: sale.event || '',
-      notes: sale.notes || ''
+      notes: sale.notes || '',
+      updatedBy: sale.updated_by || ''
     })
     setEditingId(sale.id)
     setShowForm(true)
@@ -367,8 +370,7 @@ export default function BarSalesManager() {
         <div className={`${theme.card} rounded-lg shadow-lg p-8 w-full max-w-md`}>
           <div className="text-center mb-8">
             <Lock className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-            <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>バー売上管理システム - 本格版</h1>
-            <p className={`${theme.textSecondary}`}>🚀 Supabase リアルタイム同期</p>
+            <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>バー管理システム</h1>
           </div>
           
           <div className="space-y-4">
@@ -391,10 +393,6 @@ export default function BarSalesManager() {
               ログイン
             </button>
           </div>
-
-          <div className="mt-6 p-4 bg-blue-50 rounded-md">
-            <p className={`text-xs ${theme.textSecondary} text-center`}>💡 パスワード: BarSales2024</p>
-          </div>
         </div>
       </div>
     )
@@ -406,10 +404,10 @@ export default function BarSalesManager() {
         <div className={`${theme.card} rounded-lg shadow-md p-4 sm:p-6 mb-6`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>バー売上管理ツール - 本格版</h1>
+              <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>バー管理システム</h1>
               <div className="flex items-center gap-2 mt-2">
                 <p className={`${theme.textSecondary} text-sm sm:text-base`}>
-                  🚀 Supabase リアルタイム同期 | {currentUser?.name}
+                  {currentUser?.name}
                 </p>
                 <div className="flex items-center gap-1">
                   {isConnected ? (
@@ -432,7 +430,6 @@ export default function BarSalesManager() {
               <button
                 onClick={forceSync}
                 className={`p-2 rounded-lg border ${theme.border} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
-                title="手動同期"
                 disabled={isLoading}
               >
                 <Wifi size={16} className={isConnected ? 'text-green-500' : 'text-gray-400'} />
@@ -469,7 +466,6 @@ export default function BarSalesManager() {
               <button
                 onClick={handleLogout}
                 className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors"
-                title="ログアウト"
               >
                 <LogOut size={16} />
               </button>
@@ -601,217 +597,6 @@ export default function BarSalesManager() {
                   {isConnected ? (
                     <span className="text-green-600 text-xs flex items-center gap-1">
                       <Cloud size={12} />
-                      Supabase 同期済み
+                      同期済み
                     </span>
                   ) : (
-                    <span className="text-red-600 text-xs flex items-center gap-1">
-                      <CloudOff size={12} />
-                      オフライン
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>日付</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>曜日</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>組数</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>売上</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>カード</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>PayPay</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>現金</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>経費</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>利益</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>更新者</th>
-                    <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody className={`${theme.card} divide-y ${theme.border}`}>
-                  {sales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text}`}>
-                        {new Date(sale.date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text}`}>{sale.day_of_week}</td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text}`}>{sale.group_count}組</td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-green-600">
-                        ¥{sale.total_sales.toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text} hidden sm:table-cell`}>
-                        ¥{(sale.card_sales || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-red-500 hidden sm:table-cell`}>
-                        ¥{(sale.paypay_sales || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.text} hidden sm:table-cell`}>
-                        ¥{(sale.cash_sales || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-red-600 hidden sm:table-cell`}>
-                        ¥{(sale.expenses || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-indigo-600 hidden sm:table-cell`}>
-                        ¥{(sale.profit || 0).toLocaleString()}
-                      </td>
-                      <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm ${theme.textSecondary} hidden sm:table-cell`}>
-                        {sale.updated_by || '---'}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEdit(sale)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
-                            title="編集"
-                            disabled={isLoading}
-                          >
-                            <Edit3 size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(sale.id)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
-                            title="削除"
-                            disabled={isLoading}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {sales.length === 0 && (
-                <div className={`text-center py-8 ${theme.textSecondary} text-sm sm:text-base`}>
-                  まだ売上データがありません。「売上を追加」ボタンから入力を始めましょう。
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-            <div className={`${theme.card} rounded-lg p-4 sm:p-6 w-full max-w-md mx-auto my-8 max-h-screen overflow-y-auto`}>
-              <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>
-                {editingId ? '売上データを編集' : '売上データを追加'}
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { label: '日付', type: 'date', key: 'date' as keyof FormData },
-                  { label: '組数', type: 'number', key: 'groupCount' as keyof FormData, placeholder: '0', min: '0' },
-                  { label: '売上金額（円）', type: 'number', key: 'totalSales' as keyof FormData, placeholder: '0', min: '0' },
-                  { label: 'カード決済分（円）', type: 'number', key: 'cardSales' as keyof FormData, placeholder: '0', min: '0' },
-                  { label: 'PayPay決済分（円）', type: 'number', key: 'paypaySales' as keyof FormData, placeholder: '0', min: '0' },
-                  { label: '経費（円）', type: 'number', key: 'expenses' as keyof FormData, placeholder: '0', min: '0' },
-                  { label: 'イベント（任意）', type: 'text', key: 'event' as keyof FormData, placeholder: '例: ライブイベント、忘年会など' }
-                ].map((field) => (
-                  <div key={field.key}>
-                    <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>{field.label}</label>
-                    <input
-                      type={field.type}
-                      value={formData[field.key]}
-                      onChange={(e) => setFormData({...formData, [field.key]: e.target.value})}
-                      className="w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border border-gray-300 text-base"
-                      placeholder={field.placeholder}
-                      min={field.min}
-                      disabled={isLoading}
-                    />
-                  </div>
-                ))}
-                
-                <div>
-                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>メモ（任意）</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                    className="w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border border-gray-300 text-base resize-none"
-                    rows={3}
-                    placeholder="特記事項があれば記入"
-                    disabled={isLoading}
-                  />
-                </div>
-                
-                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowForm(false)
-                      setEditingId(null)
-                      setFormData({
-                        date: new Date().toISOString().split('T')[0],
-                        groupCount: '',
-                        totalSales: '',
-                        cardSales: '',
-                        paypaySales: '',
-                        expenses: '',
-                        event: '',
-                        notes: ''
-                      })
-                    }}
-                    className={`w-full sm:w-auto px-6 py-3 border ${theme.border} rounded-md text-base font-medium ${theme.textSecondary} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
-                    disabled={isLoading}
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="w-full sm:w-auto px-6 py-3 bg-blue-600 border border-transparent rounded-md text-base font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? '保存中...' : (editingId ? '更新' : '追加')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showTargetForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-            <div className={`${theme.card} rounded-lg p-4 sm:p-6 w-full max-w-md mx-auto my-8`}>
-              <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>目標売上設定</h3>
-              <div className="space-y-4">
-                {[
-                  { label: '日平均目標（円）', key: 'daily' as keyof typeof targets, placeholder: '50000' },
-                  { label: '週平均目標（円）', key: 'weekly' as keyof typeof targets, placeholder: '350000' },
-                  { label: '月平均目標（円）', key: 'monthly' as keyof typeof targets, placeholder: '1500000' }
-                ].map((field) => (
-                  <div key={field.key}>
-                    <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>{field.label}</label>
-                    <input
-                      type="number"
-                      value={targets[field.key]}
-                      onChange={(e) => setTargets({...targets, [field.key]: parseInt(e.target.value) || 0})}
-                      className="w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border border-gray-300 text-base"
-                      placeholder={field.placeholder}
-                    />
-                  </div>
-                ))}
-                
-                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowTargetForm(false)}
-                    className={`w-full sm:w-auto px-6 py-3 border ${theme.border} rounded-md text-base font-medium ${theme.textSecondary} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowTargetForm(false)}
-                    className="w-full sm:w-auto px-6 py-3 bg-purple-600 border border-transparent rounded-md text-base font-medium text-white hover:bg-purple-700 transition-colors"
-                  >
-                    保存
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
