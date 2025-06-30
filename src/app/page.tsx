@@ -69,7 +69,6 @@ export default function BarSalesManager() {
   const [showTargetForm, setShowTargetForm] = useState(false)
   const SIMPLE_PASSWORD = 'BarSales2024'
 
-  // データ初期化とリアルタイム購読
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -805,8 +804,7 @@ export default function BarSalesManager() {
       </div>
     </div>
   )
-}
-                <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>売上推移</h3>
+}ibold mb-4 ${theme.text}`}>売上推移</h3>
                 <div className="h-64 sm:h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={timeSeriesData}>
@@ -821,3 +819,4 @@ export default function BarSalesManager() {
               </div>
 
               <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md`}>
+                <h3 className={`text-base sm:text-lg font-sem
