@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
-import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi } from 'lucide-react'
+import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi, Trash2 } from 'lucide-react'
 import { supabase, salesAPI } from '../lib/supabase'
 
 interface Sale {
@@ -531,9 +531,9 @@ export default function BarSalesManager() {
               {[
                 { label: '総売上', value: stats.totalSales, color: 'green', icon: DollarSign, sub: `日割り: ¥${Math.round(stats.dailyAverage).toLocaleString()}` },
                 { label: '総組数', value: `${stats.totalGroups}組`, color: 'blue', icon: Users, sub: `日平均: ${Math.round(stats.totalGroups / Math.max(sales.length, 1))}組` },
-                { label: 'カード売上', value: stats.totalCardSales, color: 'purple', icon: '💳', sub: `${Math.round(stats.cardRatio)}%` },
-                { label: 'PayPay売上', value: stats.totalPaypaySales, color: 'red', icon: '📱', sub: `${Math.round(stats.paypayRatio)}%` },
-                { label: '現金売上', value: stats.totalCashSales, color: 'emerald', icon: '💵', sub: `${Math.round(stats.cashRatio)}%` },
+                { label: 'カード売上', value: stats.totalCardSales, color: 'blue', icon: '💳', sub: `${Math.round(stats.cardRatio)}%` },
+                { label: 'PayPay売上', value: stats.totalPaypaySales, color: 'purple', icon: '📱', sub: `${Math.round(stats.paypayRatio)}%` },
+                { label: '現金売上', value: stats.totalCashSales, color: 'green', icon: '💵', sub: `${Math.round(stats.cashRatio)}%` },
                 { label: '総経費', value: stats.totalExpenses, color: 'red', icon: '📋', sub: `日平均: ¥${Math.round(stats.totalExpenses / Math.max(sales.length, 1)).toLocaleString()}` },
                 { label: '純利益', value: stats.totalProfit, color: 'indigo', icon: TrendingUp, sub: `日割り: ¥${Math.round(stats.dailyProfit).toLocaleString()}` }
               ].map((stat, index) => (
@@ -600,3 +600,301 @@ export default function BarSalesManager() {
                       同期済み
                     </span>
                   ) : (
+                    <span className="text-red-600 text-xs flex items-center gap-1">
+                      <CloudOff size={12} />
+                      オフライン
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="inline-block min-w-full align-middle">
+                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className={`${theme.bg}`}>
+                      <tr>
+                        <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>日付</th>
+                        <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>売上詳細</th>
+                        <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>組数</th>
+                        <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>平均単価</th>
+                        <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider hidden sm:table-cell`}>利益</th>
+                        <th className={`px-3 sm:px-6 py-3 text-left text-xs font-medium ${theme.textSecondary} uppercase tracking-wider`}>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`${theme.card} divide-y divide-gray-200 dark:divide-gray-700`}>
+                      {sales.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className={`px-6 py-4 text-center ${theme.textSecondary}`}>
+                            データがありません
+                          </td>
+                        </tr>
+                      ) : (
+                        sales.map((sale) => (
+                          <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className={`px-3 sm:px-6 py-4 whitespace-nowrap ${theme.text}`}>
+                              <div>
+                                <div className="text-sm font-medium">{sale.date}</div>
+                                <div className={`text-xs ${theme.textSecondary}`}>{sale.day_of_week}</div>
+                              </div>
+                            </td>
+                            <td className={`px-3 sm:px-6 py-4 ${theme.text}`}>
+                              <div className="text-sm font-medium mb-1">¥{sale.total_sales.toLocaleString()}</div>
+                              <div className="text-xs space-y-1">
+                                <div className="text-blue-600">カード: ¥{(sale.card_sales || 0).toLocaleString()}</div>
+                                <div className="text-purple-600">PayPay: ¥{(sale.paypay_sales || 0).toLocaleString()}</div>
+                                <div className="text-green-600">現金: ¥{(sale.cash_sales || 0).toLocaleString()}</div>
+                              </div>
+                            </td>
+                            <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-sm ${theme.text}`}>
+                              <div>{sale.group_count}組</div>
+                              <div className={`text-xs ${theme.textSecondary} sm:hidden`}>
+                                単価: ¥{Math.round(sale.average_spend || 0).toLocaleString()}
+                              </div>
+                            </td>
+                            <td className={`px-3 sm:px-6 py-4 whitespace-nowrap text-sm ${theme.text} hidden sm:table-cell`}>
+                              ¥{Math.round(sale.average_spend || 0).toLocaleString()}
+                            </td>
+                            <td className={`px-3 sm:px-6 py-4 whitespace-nowrap ${theme.text} hidden sm:table-cell`}>
+                              <div className="text-sm font-medium">¥{(sale.profit || 0).toLocaleString()}</div>
+                              <div className={`text-xs ${theme.textSecondary}`}>
+                                経費: ¥{(sale.expenses || 0).toLocaleString()}
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                                <button
+                                  onClick={() => handleEdit(sale)}
+                                  className="text-blue-600 hover:text-blue-900 p-1"
+                                  disabled={isLoading}
+                                >
+                                  <Edit3 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(sale.id)}
+                                  className="text-red-600 hover:text-red-900 p-1"
+                                  disabled={isLoading}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                              <div className={`text-xs ${theme.textSecondary} sm:hidden mt-1`}>
+                                利益: ¥{(sale.profit || 0).toLocaleString()}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* フォームモーダル */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className={`${theme.card} rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto`}>
+              <h2 className={`text-xl font-bold mb-4 ${theme.text}`}>
+                {editingId ? '売上データ編集' : '新規売上データ'}
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>日付</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>組数 *</label>
+                  <input
+                    type="number"
+                    value={formData.groupCount}
+                    onChange={(e) => setFormData({...formData, groupCount: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="例: 15"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>総売上 *</label>
+                  <input
+                    type="number"
+                    value={formData.totalSales}
+                    onChange={(e) => setFormData({...formData, totalSales: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="例: 50000"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>カード決済</label>
+                  <input
+                    type="number"
+                    value={formData.cardSales}
+                    onChange={(e) => setFormData({...formData, cardSales: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="例: 20000"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>PayPay決済</label>
+                  <input
+                    type="number"
+                    value={formData.paypaySales}
+                    onChange={(e) => setFormData({...formData, paypaySales: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="例: 15000"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>経費</label>
+                  <input
+                    type="number"
+                    value={formData.expenses}
+                    onChange={(e) => setFormData({...formData, expenses: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="例: 5000"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>イベント</label>
+                  <input
+                    type="text"
+                    value={formData.event}
+                    onChange={(e) => setFormData({...formData, event: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="例: 忘年会シーズン"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>メモ</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    rows={3}
+                    placeholder="その他のメモ"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>更新者</label>
+                  <input
+                    type="text"
+                    value={formData.updatedBy}
+                    onChange={(e) => setFormData({...formData, updatedBy: e.target.value})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="例: 田中"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowForm(false)
+                    setEditingId(null)
+                    setFormData({
+                      date: new Date().toISOString().split('T')[0],
+                      groupCount: '',
+                      totalSales: '',
+                      cardSales: '',
+                      paypaySales: '',
+                      expenses: '',
+                      event: '',
+                      notes: '',
+                      updatedBy: ''
+                    })
+                  }}
+                  className={`px-4 py-2 border ${theme.border} rounded-md ${theme.text} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                  disabled={isLoading}
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                  disabled={isLoading}
+                >
+                  {isLoading ? '保存中...' : (editingId ? '更新' : '保存')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 目標設定モーダル */}
+        {showTargetForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className={`${theme.card} rounded-lg p-6 w-full max-w-md`}>
+              <h2 className={`text-xl font-bold mb-4 ${theme.text}`}>目標設定</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>日平均目標</label>
+                  <input
+                    type="number"
+                    value={targets.daily}
+                    onChange={(e) => setTargets({...targets, daily: parseInt(e.target.value) || 0})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="50000"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>週平均目標</label>
+                  <input
+                    type="number"
+                    value={targets.weekly}
+                    onChange={(e) => setTargets({...targets, weekly: parseInt(e.target.value) || 0})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="350000"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>月平均目標</label>
+                  <input
+                    type="number"
+                    value={targets.monthly}
+                    onChange={(e) => setTargets({...targets, monthly: parseInt(e.target.value) || 0})}
+                    className={`w-full rounded-md border ${theme.border} p-3 focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder="1500000"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowTargetForm(false)}
+                  className={`px-4 py-2 border ${theme.border} rounded-md ${theme.text} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={() => setShowTargetForm(false)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+                >
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
