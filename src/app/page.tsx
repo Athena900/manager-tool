@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts'
 import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi, Trash2 } from 'lucide-react'
 import { supabase, salesAPI } from '../lib/supabase'
 
@@ -724,7 +724,7 @@ export default function BarSalesManager() {
                         <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
                         <Bar dataKey="sales">
                           {weeklyComparisonData.map((entry, index) => (
-                            <Bar key={index} fill={entry.type === 'current' ? '#3b82f6' : '#94a3b8'} />
+                            <Cell key={index} fill={entry.type === 'current' ? '#3b82f6' : '#94a3b8'} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -743,7 +743,7 @@ export default function BarSalesManager() {
                         <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
                         <Bar dataKey="sales">
                           {monthlyComparisonData.map((entry, index) => (
-                            <Bar key={index} fill={entry.type === 'current' ? '#8b5cf6' : '#94a3b8'} />
+                            <Cell key={index} fill={entry.type === 'current' ? '#8b5cf6' : '#94a3b8'} />
                           ))}
                         </Bar>
                       </BarChart>
