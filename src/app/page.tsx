@@ -395,7 +395,7 @@ export default function BarSalesManager() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
