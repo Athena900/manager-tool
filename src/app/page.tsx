@@ -722,10 +722,7 @@ export default function BarSalesManager() {
                         <XAxis dataKey="period" fontSize={12} />
                         <YAxis fontSize={12} />
                         <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
-                        <Bar 
-                          dataKey="sales" 
-                          fill={(data) => data.type === 'current' ? '#3b82f6' : '#94a3b8'}
-                        >
+                        <Bar dataKey="sales">
                           {weeklyComparisonData.map((entry, index) => (
                             <Bar key={index} fill={entry.type === 'current' ? '#3b82f6' : '#94a3b8'} />
                           ))}
@@ -744,10 +741,7 @@ export default function BarSalesManager() {
                         <XAxis dataKey="period" fontSize={12} />
                         <YAxis fontSize={12} />
                         <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
-                        <Bar 
-                          dataKey="sales" 
-                          fill={(data) => data.type === 'current' ? '#8b5cf6' : '#94a3b8'}
-                        >
+                        <Bar dataKey="sales">
                           {monthlyComparisonData.map((entry, index) => (
                             <Bar key={index} fill={entry.type === 'current' ? '#8b5cf6' : '#94a3b8'} />
                           ))}
