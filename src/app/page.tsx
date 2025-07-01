@@ -326,6 +326,88 @@ export default function BarSalesManager() {
       }))
   }, [sales])
 
+  const comparisonData = useMemo(() => {
+    const now = new Date()
+    const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()))
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    
+    const lastWeekStart = new Date(currentWeekStart)
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+    const lastWeekEnd = new Date(currentWeekStart)
+    lastWeekEnd.setDate(lastWeekEnd.getDate() - 1)
+    
+    const lastMonthStart = new Date(currentMonthStart)
+    lastMonthStart.setMonth(lastMonthStart.getMonth() - 1)
+    const lastMonthEnd = new Date(currentMonthStart)
+    lastMonthEnd.setDate(lastMonthEnd.getDate() - 1)
+    
+    const currentWeekSales = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= currentWeekStart
+    }).reduce((sum, sale) => sum + sale.total_sales, 0)
+    
+    const lastWeekSales = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= lastWeekStart && saleDate <= lastWeekEnd
+    }).reduce((sum, sale) => sum + sale.total_sales, 0)
+    
+    const currentMonthSales = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= currentMonthStart
+    }).reduce((sum, sale) => sum + sale.total_sales, 0)
+    
+    const lastMonthSales = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= lastMonthStart && saleDate <= lastMonthEnd
+    }).reduce((sum, sale) => sum + sale.total_sales, 0)
+    
+    const weeklyChange = lastWeekSales > 0 ? ((currentWeekSales - lastWeekSales) / lastWeekSales * 100) : 0
+    const monthlyChange = lastMonthSales > 0 ? ((currentMonthSales - lastMonthSales) / lastMonthSales * 100) : 0
+    
+    return {
+      weekly: {
+        current: currentWeekSales,
+        previous: lastWeekSales,
+        change: weeklyChange
+      },
+      monthly: {
+        current: currentMonthSales,
+        previous: lastMonthSales,
+        change: monthlyChange
+      }
+    }
+  }, [sales])
+
+  const weeklyComparisonData = useMemo(() => {
+    return [
+      {
+        period: '前週',
+        sales: comparisonData.weekly.previous,
+        type: 'previous'
+      },
+      {
+        period: '今週',
+        sales: comparisonData.weekly.current,
+        type: 'current'
+      }
+    ]
+  }, [comparisonData])
+
+  const monthlyComparisonData = useMemo(() => {
+    return [
+      {
+        period: '前月',
+        sales: comparisonData.monthly.previous,
+        type: 'previous'
+      },
+      {
+        period: '今月',
+        sales: comparisonData.monthly.current,
+        type: 'current'
+      }
+    ]
+  }, [comparisonData])
+
   const dayStats = useMemo(() => {
     const statsObj = sales.reduce((acc: any, sale) => {
       if (!acc[sale.day_of_week]) {
@@ -582,6 +664,97 @@ export default function BarSalesManager() {
                       <Bar dataKey="avgSales" fill="#8884d8" />
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* 週間/月間比較セクション */}
+            <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md mb-6`}>
+              <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>期間比較分析</h3>
+              
+              {/* 比較サマリー */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <h4 className={`text-sm font-medium ${theme.textSecondary} mb-2`}>週間比較</h4>
+                  <div className={`text-2xl font-bold ${theme.text} mb-1`}>
+                    ¥{comparisonData.weekly.current.toLocaleString()}
+                  </div>
+                  <div className="flex items-center">
+                    <span className={`text-sm ${theme.textSecondary}`}>前週比: </span>
+                    <span className={`text-sm font-medium ml-1 ${
+                      comparisonData.weekly.change >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {comparisonData.weekly.change >= 0 ? '+' : ''}{comparisonData.weekly.change.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className={`text-xs ${theme.textSecondary} mt-1`}>
+                    前週: ¥{comparisonData.weekly.previous.toLocaleString()}
+                  </div>
+                </div>
+                
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                  <h4 className={`text-sm font-medium ${theme.textSecondary} mb-2`}>月間比較</h4>
+                  <div className={`text-2xl font-bold ${theme.text} mb-1`}>
+                    ¥{comparisonData.monthly.current.toLocaleString()}
+                  </div>
+                  <div className="flex items-center">
+                    <span className={`text-sm ${theme.textSecondary}`}>前月比: </span>
+                    <span className={`text-sm font-medium ml-1 ${
+                      comparisonData.monthly.change >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {comparisonData.monthly.change >= 0 ? '+' : ''}{comparisonData.monthly.change.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className={`text-xs ${theme.textSecondary} mt-1`}>
+                    前月: ¥{comparisonData.monthly.previous.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              
+              {/* 比較グラフ */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <h4 className={`text-sm font-medium ${theme.textSecondary} mb-3`}>週間比較</h4>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={weeklyComparisonData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="period" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
+                        <Bar 
+                          dataKey="sales" 
+                          fill={(data) => data.type === 'current' ? '#3b82f6' : '#94a3b8'}
+                        >
+                          {weeklyComparisonData.map((entry, index) => (
+                            <Bar key={index} fill={entry.type === 'current' ? '#3b82f6' : '#94a3b8'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className={`text-sm font-medium ${theme.textSecondary} mb-3`}>月間比較</h4>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyComparisonData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="period" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip formatter={(value) => [`¥${value.toLocaleString()}`, '売上']} />
+                        <Bar 
+                          dataKey="sales" 
+                          fill={(data) => data.type === 'current' ? '#8b5cf6' : '#94a3b8'}
+                        >
+                          {monthlyComparisonData.map((entry, index) => (
+                            <Bar key={index} fill={entry.type === 'current' ? '#8b5cf6' : '#94a3b8'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             </div>
