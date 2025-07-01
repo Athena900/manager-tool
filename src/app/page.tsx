@@ -294,6 +294,7 @@ export default function BarSalesManager() {
     const totalProfit = totalSales - totalExpenses
     const totalGroups = sales.reduce((sum, sale) => sum + sale.group_count, 0)
     const averageSpend = totalGroups > 0 ? totalSales / totalGroups : 0
+    const overallProfitRate = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0
 
     const dates = sales.map(sale => sale.date).filter((date, index, array) => array.indexOf(date) === index)
     const dayCount = dates.length || 1
@@ -303,7 +304,7 @@ export default function BarSalesManager() {
 
     return {
       totalSales, totalCardSales, totalPaypaySales, totalCashSales,
-      totalExpenses, totalProfit, totalGroups, averageSpend,
+      totalExpenses, totalProfit, totalGroups, averageSpend, overallProfitRate,
       dailyAverage, weeklyAverage, monthlyAverage,
       dailyProfit: totalProfit / dayCount,
       cardRatio: totalSales > 0 ? (totalCardSales / totalSales) * 100 : 0,
@@ -361,19 +362,48 @@ export default function BarSalesManager() {
       return saleDate >= lastMonthStart && saleDate <= lastMonthEnd
     }).reduce((sum, sale) => sum + sale.total_sales, 0)
     
+    const currentWeekProfit = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= currentWeekStart
+    }).reduce((sum, sale) => sum + (sale.profit || 0), 0)
+    
+    const lastWeekProfit = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= lastWeekStart && saleDate <= lastWeekEnd
+    }).reduce((sum, sale) => sum + (sale.profit || 0), 0)
+    
+    const currentMonthProfit = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= currentMonthStart
+    }).reduce((sum, sale) => sum + (sale.profit || 0), 0)
+    
+    const lastMonthProfit = sales.filter(sale => {
+      const saleDate = new Date(sale.date)
+      return saleDate >= lastMonthStart && saleDate <= lastMonthEnd
+    }).reduce((sum, sale) => sum + (sale.profit || 0), 0)
+    
     const weeklyChange = lastWeekSales > 0 ? ((currentWeekSales - lastWeekSales) / lastWeekSales * 100) : 0
     const monthlyChange = lastMonthSales > 0 ? ((currentMonthSales - lastMonthSales) / lastMonthSales * 100) : 0
+    
+    const currentWeekProfitRate = currentWeekSales > 0 ? (currentWeekProfit / currentWeekSales * 100) : 0
+    const lastWeekProfitRate = lastWeekSales > 0 ? (lastWeekProfit / lastWeekSales * 100) : 0
+    const currentMonthProfitRate = currentMonthSales > 0 ? (currentMonthProfit / currentMonthSales * 100) : 0
+    const lastMonthProfitRate = lastMonthSales > 0 ? (lastMonthProfit / lastMonthSales * 100) : 0
     
     return {
       weekly: {
         current: currentWeekSales,
         previous: lastWeekSales,
-        change: weeklyChange
+        change: weeklyChange,
+        currentProfitRate: currentWeekProfitRate,
+        previousProfitRate: lastWeekProfitRate
       },
       monthly: {
         current: currentMonthSales,
         previous: lastMonthSales,
-        change: monthlyChange
+        change: monthlyChange,
+        currentProfitRate: currentMonthProfitRate,
+        previousProfitRate: lastMonthProfitRate
       }
     }
   }, [sales])
@@ -617,7 +647,8 @@ export default function BarSalesManager() {
                 { label: 'PayPay売上', value: stats.totalPaypaySales, color: 'purple', icon: '📱', sub: `${Math.round(stats.paypayRatio)}%` },
                 { label: '現金売上', value: stats.totalCashSales, color: 'green', icon: '💵', sub: `${Math.round(stats.cashRatio)}%` },
                 { label: '総経費', value: stats.totalExpenses, color: 'red', icon: '📋', sub: `日平均: ¥${Math.round(stats.totalExpenses / Math.max(sales.length, 1)).toLocaleString()}` },
-                { label: '純利益', value: stats.totalProfit, color: 'indigo', icon: TrendingUp, sub: `日割り: ¥${Math.round(stats.dailyProfit).toLocaleString()}` }
+                { label: '純利益', value: stats.totalProfit, color: 'indigo', icon: TrendingUp, sub: `利益率: ${Math.round(stats.overallProfitRate)}%` },
+                { label: '平均利益率', value: `${Math.round(stats.overallProfitRate)}%`, color: stats.overallProfitRate >= 80 ? 'green' : stats.overallProfitRate >= 60 ? 'yellow' : 'red', icon: '📊', sub: `日割り: ¥${Math.round(stats.dailyProfit).toLocaleString()}` }
               ].map((stat, index) => (
                 <div key={index} className={`${theme.card} p-3 sm:p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300`}>
                   <div className="flex items-center justify-between">
@@ -679,7 +710,7 @@ export default function BarSalesManager() {
                   <div className={`text-2xl font-bold ${theme.text} mb-1`}>
                     ¥{comparisonData.weekly.current.toLocaleString()}
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center mb-2">
                     <span className={`text-sm ${theme.textSecondary}`}>前週比: </span>
                     <span className={`text-sm font-medium ml-1 ${
                       comparisonData.weekly.change >= 0 ? 'text-green-600' : 'text-red-600'
@@ -687,8 +718,20 @@ export default function BarSalesManager() {
                       {comparisonData.weekly.change >= 0 ? '+' : ''}{comparisonData.weekly.change.toFixed(1)}%
                     </span>
                   </div>
-                  <div className={`text-xs ${theme.textSecondary} mt-1`}>
-                    前週: ¥{comparisonData.weekly.previous.toLocaleString()}
+                  <div className="flex items-center mb-1">
+                    <span className={`text-sm ${theme.textSecondary}`}>今週利益率: </span>
+                    <span className={`text-sm font-medium ml-1 px-2 py-1 rounded ${
+                      comparisonData.weekly.currentProfitRate >= 80 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                        : comparisonData.weekly.currentProfitRate >= 60
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+                        : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                    }`}>
+                      {comparisonData.weekly.currentProfitRate.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className={`text-xs ${theme.textSecondary}`}>
+                    前週: ¥{comparisonData.weekly.previous.toLocaleString()} ({comparisonData.weekly.previousProfitRate.toFixed(1)}%)
                   </div>
                 </div>
                 
@@ -697,7 +740,7 @@ export default function BarSalesManager() {
                   <div className={`text-2xl font-bold ${theme.text} mb-1`}>
                     ¥{comparisonData.monthly.current.toLocaleString()}
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center mb-2">
                     <span className={`text-sm ${theme.textSecondary}`}>前月比: </span>
                     <span className={`text-sm font-medium ml-1 ${
                       comparisonData.monthly.change >= 0 ? 'text-green-600' : 'text-red-600'
@@ -705,8 +748,20 @@ export default function BarSalesManager() {
                       {comparisonData.monthly.change >= 0 ? '+' : ''}{comparisonData.monthly.change.toFixed(1)}%
                     </span>
                   </div>
-                  <div className={`text-xs ${theme.textSecondary} mt-1`}>
-                    前月: ¥{comparisonData.monthly.previous.toLocaleString()}
+                  <div className="flex items-center mb-1">
+                    <span className={`text-sm ${theme.textSecondary}`}>今月利益率: </span>
+                    <span className={`text-sm font-medium ml-1 px-2 py-1 rounded ${
+                      comparisonData.monthly.currentProfitRate >= 80 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                        : comparisonData.monthly.currentProfitRate >= 60
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+                        : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                    }`}>
+                      {comparisonData.monthly.currentProfitRate.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className={`text-xs ${theme.textSecondary}`}>
+                    前月: ¥{comparisonData.monthly.previous.toLocaleString()} ({comparisonData.monthly.previousProfitRate.toFixed(1)}%)
                   </div>
                 </div>
               </div>
@@ -825,8 +880,19 @@ export default function BarSalesManager() {
                             </td>
                             <td className={`px-3 sm:px-6 py-4 whitespace-nowrap ${theme.text} hidden sm:table-cell`}>
                               <div className="text-sm font-medium">¥{(sale.profit || 0).toLocaleString()}</div>
-                              <div className={`text-xs ${theme.textSecondary}`}>
-                                経費: ¥{(sale.expenses || 0).toLocaleString()}
+                              <div className="flex items-center gap-2">
+                                <div className={`text-xs ${theme.textSecondary}`}>
+                                  経費: ¥{(sale.expenses || 0).toLocaleString()}
+                                </div>
+                                <div className={`text-xs font-medium px-2 py-1 rounded ${
+                                  ((sale.profit || 0) / sale.total_sales * 100) >= 80 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                                    : ((sale.profit || 0) / sale.total_sales * 100) >= 60
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                                }`}>
+                                  {Math.round((sale.profit || 0) / sale.total_sales * 100)}%
+                                </div>
                               </div>
                             </td>
                             <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -847,7 +913,7 @@ export default function BarSalesManager() {
                                 </button>
                               </div>
                               <div className={`text-xs ${theme.textSecondary} sm:hidden mt-1`}>
-                                利益: ¥{(sale.profit || 0).toLocaleString()}
+                                利益: ¥{(sale.profit || 0).toLocaleString()} ({Math.round((sale.profit || 0) / sale.total_sales * 100)}%)
                               </div>
                             </td>
                           </tr>
