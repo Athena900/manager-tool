@@ -150,7 +150,7 @@ export default function BarSalesManager() {
   const handleLogin = () => {
     if (loginData.password === SIMPLE_PASSWORD) {
       setIsAuthenticated(true)
-      setCurrentUser({ name: 'バースタッフ' })
+      setCurrentUser({ name: 'スタッフ' })
     } else {
       alert('パスワードが間違っています。')
     }
@@ -482,7 +482,7 @@ export default function BarSalesManager() {
         <div className={`${theme.card} rounded-lg shadow-lg p-8 w-full max-w-md`}>
           <div className="text-center mb-8">
             <Lock className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-            <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>バー管理システム</h1>
+            <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>管理システム</h1>
           </div>
           
           <div className="space-y-4">
@@ -516,7 +516,7 @@ export default function BarSalesManager() {
         <div className={`${theme.card} rounded-lg shadow-md p-4 sm:p-6 mb-6`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>バー管理システム</h1>
+              <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>管理システム</h1>
               <div className="flex items-center gap-2 mt-2">
                 <p className={`${theme.textSecondary} text-sm sm:text-base`}>
                   {currentUser?.name}
