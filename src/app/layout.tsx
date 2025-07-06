@@ -1,7 +1,7 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'バー売上管理システム',
+  title: '売上管理システム',
   description: 'Supabaseリアルタイム同期対応',
 }
 
