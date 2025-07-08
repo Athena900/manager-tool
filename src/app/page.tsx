@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts'
 import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi, Trash2 } from 'lucide-react'
 import { supabase, salesAPI } from '../lib/supabase'
+import AuthGuard from '@/components/auth/AuthGuard'
 
 interface Sale {
   id: string
@@ -36,15 +37,12 @@ interface FormData {
   updatedBy: string
 }
 
-export default function BarSalesManager() {
+function BarSalesManager() {
   const [sales, setSales] = useState<Sale[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [darkMode, setDarkMode] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [currentUser, setCurrentUser] = useState<{ name: string } | null>(null)
-  const [loginData, setLoginData] = useState({ password: '' })
   const [isConnected, setIsConnected] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [lastSync, setLastSync] = useState<Date | null>(null)
@@ -68,10 +66,8 @@ export default function BarSalesManager() {
   })
 
   const [showTargetForm, setShowTargetForm] = useState(false)
-  const SIMPLE_PASSWORD = 'BarSales2024'
 
   useEffect(() => {
-    if (!isAuthenticated) return
     initializeData()
     
     let subscription: any = null
@@ -103,7 +99,7 @@ export default function BarSalesManager() {
         subscription.unsubscribe()
       }
     }
-  }, [isAuthenticated])
+  }, [])
 
   const initializeData = async () => {
     setIsLoading(true)
@@ -147,19 +143,9 @@ export default function BarSalesManager() {
     }
   }, [targets])
 
-  const handleLogin = () => {
-    if (loginData.password === SIMPLE_PASSWORD) {
-      setIsAuthenticated(true)
-      setCurrentUser({ name: 'スタッフ' })
-    } else {
-      alert('パスワードが間違っています。')
-    }
-  }
-
   const handleLogout = () => {
-    setIsAuthenticated(false)
-    setCurrentUser(null)
-    setLoginData({ password: '' })
+    // ログアウト処理は AuthGuard で処理される
+    window.location.href = '/login'
   }
 
   const getTargetValue = (key: keyof typeof targets) => {
@@ -476,40 +462,6 @@ export default function BarSalesManager() {
     link.click()
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className={`min-h-screen ${theme.bg} flex items-center justify-center p-4`}>
-        <div className={`${theme.card} rounded-lg shadow-lg p-8 w-full max-w-md`}>
-          <div className="text-center mb-8">
-            <Lock className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-            <h1 className={`text-2xl font-bold ${theme.text} mb-2`}>管理システム</h1>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className={`block text-sm font-medium ${theme.textSecondary} mb-2`}>パスワード</label>
-              <input
-                type="password"
-                value={loginData.password}
-                onChange={(e) => setLoginData({password: e.target.value})}
-                className="w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border border-gray-300"
-                placeholder="パスワードを入力"
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            
-            <button
-              onClick={handleLogin}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
-            >
-              ログイン
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className={`min-h-screen ${theme.bg} p-4 transition-colors duration-300`}>
       <div className="max-w-7xl mx-auto">
@@ -519,7 +471,7 @@ export default function BarSalesManager() {
               <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>管理システム</h1>
               <div className="flex items-center gap-2 mt-2">
                 <p className={`${theme.textSecondary} text-sm sm:text-base`}>
-                  {currentUser?.name}
+                  バー売上管理
                 </p>
                 <div className="flex items-center gap-1">
                   {isConnected ? (
@@ -1129,5 +1081,13 @@ export default function BarSalesManager() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <AuthGuard>
+      <BarSalesManager />
+    </AuthGuard>
   )
 }
