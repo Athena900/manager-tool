@@ -38,12 +38,29 @@ export const salesAPI = {
   },
 
   async create(saleData) {
+    // 現在のユーザーIDを取得して自動的に追加
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    const dataWithUserId = {
+      ...saleData,
+      user_id: user?.id  // マルチテナント対応のためのuser_id自動設定
+    }
+    
+    console.log('=== salesAPI.create ===')
+    console.log('Original data:', saleData)
+    console.log('Data with user_id:', dataWithUserId)
+    
     const { data, error } = await supabase
       .from('sales')
-      .insert([saleData])
+      .insert([dataWithUserId])
       .select()
     
-    if (error) throw error
+    if (error) {
+      console.error('Sales data creation error:', error)
+      throw error
+    }
+    
+    console.log('Created sales data:', data[0])
     return data[0]
   },
 
