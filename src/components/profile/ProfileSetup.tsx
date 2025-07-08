@@ -95,23 +95,32 @@ export default function ProfileSetup() {
         return
       }
 
-      console.log('プロフィール作成成功 - メインページにリダイレクト')
+      console.log('プロフィール作成成功!')
+      console.log('作成されたプロフィール:', data[0])
 
       // 既存の売上データがある場合、user_idを関連付け
-      const { error: salesUpdateError } = await supabase
+      console.log('既存売上データの関連付けを開始...')
+      const { data: salesUpdateData, error: salesUpdateError } = await supabase
         .from('sales')
         .update({ user_id: user.id })
         .is('user_id', null)
+        .select('id')
 
       if (salesUpdateError) {
         console.warn('既存売上データの関連付けでエラー:', salesUpdateError)
         // エラーがあっても続行（新規ユーザーの場合は既存データがないため）
       } else {
-        console.log('既存売上データの関連付け完了')
+        const updatedCount = salesUpdateData?.length || 0
+        console.log(`既存売上データの関連付け完了: ${updatedCount}件`)
       }
 
-      // メインページにリダイレクト
-      router.push('/')
+      console.log('プロフィール設定完了 - メインページにリダイレクト')
+      
+      // リダイレクト前に少し待機（データベース更新の確実な反映のため）
+      setTimeout(() => {
+        // 強制的にページをリロードしてAuthGuardの再評価をトリガー
+        window.location.href = '/'
+      }, 500)
     } catch (error) {
       console.error('予期しないプロフィール作成エラー:', error)
       alert('プロフィール作成中に予期しないエラーが発生しました。')

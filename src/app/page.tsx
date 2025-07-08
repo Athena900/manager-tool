@@ -8,6 +8,7 @@ import AuthGuard from '@/components/auth/AuthGuard'
 import { authService } from '@/lib/auth'
 import DataIsolationDebug from '@/components/debug/DataIsolationDebug'
 import RealtimeDebug from '@/components/debug/RealtimeDebug'
+import AuthDebug from '@/components/debug/AuthDebug'
 
 interface Sale {
   id: string
@@ -626,6 +627,7 @@ function BarSalesManager() {
 
         {activeTab === 'overview' && (
           <>
+            <AuthDebug />
             <DataIsolationDebug />
             <RealtimeDebug />
             <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md mb-6`}>
