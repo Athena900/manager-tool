@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff, Lock, Mail, LogIn } from 'lucide-react'
 import { authService } from '@/lib/auth'
+import PasswordResetTest from './PasswordResetTest'
 
 interface LoginFormProps {
   onSuccess: () => void
@@ -33,19 +34,39 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, darkMode = fals
     setIsLoading(true)
     setError(null)
 
+    console.log('=== ログイン試行開始 ===')
+    console.log('Email:', formData.email)
+    console.log('Password length:', formData.password.length)
+    console.log('Environment check:', {
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+      hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    })
+
     try {
       const { user, session, error } = await authService.signIn(formData.email, formData.password)
       
+      console.log('=== AuthService応答 ===')
+      console.log('User:', user)
+      console.log('Session:', session)
+      console.log('Error:', error)
+
       if (error) {
-        setError(error)
+        console.error('ログインエラー詳細:', error)
+        setError(`ログインエラー: ${error}`)
         return
       }
 
       if (user && session) {
+        console.log('ログイン成功 - リダイレクト中...')
         onSuccess()
+      } else {
+        console.warn('ログイン応答にユーザーまたはセッションが不足')
+        setError('ログインに失敗しました。ユーザー情報を取得できませんでした。')
       }
     } catch (err) {
-      setError('ログインに失敗しました。しばらくしてからお試しください。')
+      console.error('予期しないログインエラー:', err)
+      setError('予期しないエラーが発生しました。しばらくしてからお試しください。')
     } finally {
       setIsLoading(false)
     }
@@ -155,6 +176,11 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, darkMode = fals
           </button>
         </p>
       </div>
+
+      {/* デバッグ用パスワードリセットテスト */}
+      {process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG === 'true' ? (
+        <PasswordResetTest email={formData.email} />
+      ) : null}
     </div>
   )
 }

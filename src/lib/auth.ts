@@ -74,29 +74,65 @@ export class AuthService {
    */
   async signIn(email: string, password: string) {
     try {
+      console.log('=== AuthService signIn 開始 ===')
+      console.log('Email:', email)
+      console.log('Password provided:', !!password)
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
 
+      console.log('=== Supabase signInWithPassword 応答 ===')
+      console.log('Data:', data)
+      console.log('Error:', error)
+      console.log('User exists:', !!data?.user)
+      console.log('Session exists:', !!data?.session)
+      console.log('User email confirmed:', data?.user?.email_confirmed_at)
+
       if (error) {
+        console.error('Supabase認証エラー:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        })
         return { 
           user: null, 
           session: null, 
-          error: 'メールアドレスまたはパスワードが間違っています。' 
+          error: `認証エラー: ${error.message}` 
         }
       }
 
+      if (!data.user) {
+        console.error('ユーザーデータが存在しません')
+        return {
+          user: null,
+          session: null,
+          error: 'ユーザー情報を取得できませんでした。'
+        }
+      }
+
+      if (!data.session) {
+        console.error('セッションが作成されませんでした')
+        return {
+          user: null,
+          session: null,
+          error: 'セッションを作成できませんでした。'
+        }
+      }
+
+      console.log('認証成功 - ユーザーとセッションを返却')
       return { 
         user: data.user as AuthUser, 
         session: data.session, 
         error: null 
       }
     } catch (error) {
+      console.error('予期しない認証エラー:', error)
       return { 
         user: null, 
         session: null, 
-        error: 'ログインに失敗しました。しばらくしてからお試しください。' 
+        error: '予期しないエラーが発生しました。しばらくしてからお試しください。' 
       }
     }
   }
