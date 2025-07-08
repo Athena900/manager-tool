@@ -7,6 +7,7 @@ import { supabase, salesAPI } from '../lib/supabase'
 import AuthGuard from '@/components/auth/AuthGuard'
 import { authService } from '@/lib/auth'
 import DataIsolationDebug from '@/components/debug/DataIsolationDebug'
+import RealtimeDebug from '@/components/debug/RealtimeDebug'
 
 interface Sale {
   id: string
@@ -73,11 +74,30 @@ function BarSalesManager() {
     initializeData()
     
     let subscription: any = null
-    const setupSubscription = async () => {
+    let authSubscription: any = null
+    
+    const setupSecureSubscription = async () => {
       try {
-        subscription = salesAPI.subscribeToChanges((payload) => {
-          console.log('リアルタイム更新を受信:', payload)
+        // 認証状態を確認してからリアルタイム購読を開始
+        const { user } = await authService.getCurrentUser()
+        if (!user) {
+          console.log('ユーザーが認証されていません - リアルタイム購読をスキップ')
+          return
+        }
+
+        console.log('=== セキュアなリアルタイム購読開始 ===')
+        console.log('ユーザーID:', user.id)
+        
+        subscription = await salesAPI.subscribeToChanges((payload) => {
+          console.log('ユーザー固有のリアルタイム更新を受信:', payload)
           setLastSync(new Date())
+          
+          // セキュリティチェック: payload内のuser_idを確認
+          const payloadUserId = payload.new?.user_id || payload.old?.user_id
+          if (payloadUserId && payloadUserId !== user.id) {
+            console.error('🚨 セキュリティエラー: 他ユーザーのデータが受信されました')
+            return // 処理を停止
+          }
           
           if (payload.eventType === 'INSERT' && payload.new) {
             setSales(prev => [payload.new as Sale, ...prev])
@@ -89,17 +109,45 @@ function BarSalesManager() {
             setSales(prev => prev.filter(sale => sale.id !== payload.old.id))
           }
         })
+        
+        console.log('✅ ユーザー固有のリアルタイム購読が開始されました')
       } catch (error) {
-        console.error('リアルタイム購読の設定に失敗:', error)
+        console.error('セキュアなリアルタイム購読の設定に失敗:', error)
+        setIsConnected(false)
       }
     }
     
-    setupSubscription()
+    // 認証状態の変化を監視
+    authSubscription = authService.onAuthStateChange((event, session) => {
+      console.log('Auth state change detected:', event)
+      
+      if (event === 'SIGNED_IN' && session) {
+        console.log('ログイン検出 - リアルタイム購読を開始')
+        setupSecureSubscription()
+      } else if (event === 'SIGNED_OUT' || !session) {
+        console.log('ログアウト検出 - リアルタイム購読を停止')
+        if (subscription) {
+          supabase.removeChannel(subscription)
+          subscription = null
+        }
+        salesAPI.unsubscribeAll()
+        setIsConnected(false)
+      }
+    })
+    
+    // 初回設定
+    setupSecureSubscription()
     
     return () => {
-      if (subscription && typeof subscription.unsubscribe === 'function') {
-        subscription.unsubscribe()
+      // クリーンアップ
+      if (subscription) {
+        supabase.removeChannel(subscription)
       }
+      if (authSubscription) {
+        authSubscription.data.subscription.unsubscribe()
+      }
+      salesAPI.unsubscribeAll()
+      console.log('✅ リアルタイム購読とauth監視をクリーンアップしました')
     }
   }, [])
 
@@ -579,6 +627,7 @@ function BarSalesManager() {
         {activeTab === 'overview' && (
           <>
             <DataIsolationDebug />
+            <RealtimeDebug />
             <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md mb-6`}>
               <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>目標達成率</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
