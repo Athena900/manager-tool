@@ -6,6 +6,7 @@ import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarCha
 import { supabase, salesAPI } from '../lib/supabase'
 import AuthGuard from '@/components/auth/AuthGuard'
 import { authService } from '@/lib/auth'
+import DataIsolationDebug from '@/components/debug/DataIsolationDebug'
 
 interface Sale {
   id: string
@@ -577,6 +578,7 @@ function BarSalesManager() {
 
         {activeTab === 'overview' && (
           <>
+            <DataIsolationDebug />
             <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md mb-6`}>
               <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>目標達成率</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

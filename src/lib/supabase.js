@@ -39,14 +39,25 @@ export const salesAPI = {
 
   async create(saleData) {
     // 現在のユーザーIDを取得して自動的に追加
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      console.error('User authentication error:', userError)
+      throw new Error('ユーザーが認証されていません。ログインし直してください。')
+    }
+    
+    if (!user.id) {
+      console.error('User ID is missing')
+      throw new Error('ユーザーIDが取得できません。ログインし直してください。')
+    }
     
     const dataWithUserId = {
       ...saleData,
-      user_id: user?.id  // マルチテナント対応のためのuser_id自動設定
+      user_id: user.id  // マルチテナント対応のためのuser_id自動設定（必須）
     }
     
     console.log('=== salesAPI.create ===')
+    console.log('Current user ID:', user.id)
     console.log('Original data:', saleData)
     console.log('Data with user_id:', dataWithUserId)
     
@@ -57,10 +68,17 @@ export const salesAPI = {
     
     if (error) {
       console.error('Sales data creation error:', error)
-      throw error
+      if (error.code === 'PGRST301') {
+        throw new Error('データの作成権限がありません。管理者に連絡してください。')
+      }
+      throw new Error(`売上データの作成に失敗しました: ${error.message}`)
     }
     
-    console.log('Created sales data:', data[0])
+    if (!data || data.length === 0) {
+      throw new Error('売上データが正常に作成されませんでした。')
+    }
+    
+    console.log('Created sales data successfully:', data[0])
     return data[0]
   },
 

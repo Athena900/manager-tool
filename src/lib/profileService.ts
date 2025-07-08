@@ -49,7 +49,7 @@ export class ProfileService {
   }
 
   /**
-   * プロフィールを作成
+   * プロフィールを作成（重複チェック付き）
    */
   async createProfile(storeName: string): Promise<{ profile: UserProfile | null, error: string | null }> {
     try {
@@ -58,6 +58,20 @@ export class ProfileService {
       if (!user) {
         return { profile: null, error: 'ユーザーが認証されていません' }
       }
+
+      // 既存プロフィールの確認（重複防止）
+      const { profile: existingProfile, error: checkError } = await this.getCurrentProfile()
+      
+      if (checkError && checkError !== 'ユーザーが認証されていません') {
+        return { profile: null, error: `プロフィール確認エラー: ${checkError}` }
+      }
+
+      if (existingProfile) {
+        console.log('Profile already exists, returning existing profile:', existingProfile)
+        return { profile: existingProfile, error: null }
+      }
+
+      console.log('Creating new profile for user:', user.id, 'with store name:', storeName)
 
       const { data, error } = await supabase
         .from('profiles')
@@ -69,11 +83,29 @@ export class ProfileService {
         .single()
 
       if (error) {
+        if (error.code === '23505') {
+          // 一意制約違反（重複）の場合
+          console.log('Profile creation conflict, fetching existing profile')
+          return await this.getCurrentProfile()
+        }
         return { profile: null, error: error.message }
+      }
+
+      console.log('Profile created successfully:', data)
+
+      // プロフィール作成後、既存のsalesデータを自動的に関連付け
+      try {
+        const { migrated } = await this.migrateExistingSalesData()
+        if (migrated > 0) {
+          console.log(`Migrated ${migrated} existing sales records to new profile`)
+        }
+      } catch (migrationError) {
+        console.warn('Sales data migration failed, but profile created:', migrationError)
       }
 
       return { profile: data as UserProfile, error: null }
     } catch (error) {
+      console.error('Unexpected error in createProfile:', error)
       return { profile: null, error: 'プロフィール作成中に予期しないエラーが発生しました' }
     }
   }
