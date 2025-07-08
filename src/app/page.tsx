@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi, Trash2 } from 'lucide-react'
 import { supabase, salesAPI } from '../lib/supabase'
 import AuthGuard from '@/components/auth/AuthGuard'
+import { authService } from '@/lib/auth'
 
 interface Sale {
   id: string
@@ -143,9 +144,26 @@ function BarSalesManager() {
     }
   }, [targets])
 
-  const handleLogout = () => {
-    // ログアウト処理は AuthGuard で処理される
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    console.log('=== ログアウト処理開始 ===')
+    
+    try {
+      const { error } = await authService.signOut()
+      
+      if (error) {
+        console.error('ログアウトエラー:', error)
+        alert('ログアウトに失敗しました。')
+        return
+      }
+      
+      console.log('ログアウト成功 - ログインページにリダイレクト')
+      
+      // セッション状態をクリアしてログインページにリダイレクト
+      window.location.href = '/login'
+    } catch (err) {
+      console.error('ログアウト処理中の予期しないエラー:', err)
+      alert('ログアウト処理中にエラーが発生しました。')
+    }
   }
 
   const getTargetValue = (key: keyof typeof targets) => {

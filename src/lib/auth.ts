@@ -142,14 +142,22 @@ export class AuthService {
    */
   async signOut() {
     try {
+      console.log('=== AuthService signOut 開始 ===')
+      
       const { error } = await supabase.auth.signOut()
       
+      console.log('=== Supabase signOut 応答 ===')
+      console.log('Error:', error)
+      
       if (error) {
+        console.error('Supabase ログアウトエラー:', error)
         return { error: error.message }
       }
 
+      console.log('Supabase ログアウト成功')
       return { error: null }
     } catch (error) {
+      console.error('予期しないログアウトエラー:', error)
       return { error: 'ログアウトに失敗しました。' }
     }
   }
