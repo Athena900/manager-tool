@@ -164,7 +164,7 @@ export class AuthService {
   async resetPassword(email: string) {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://manager-tool.vercel.app'}/auth/callback`
       })
 
       if (error) {
