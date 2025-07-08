@@ -36,10 +36,13 @@ export class AuthService {
    */
   async signUp(email: string, password: string, metadata: { full_name: string, store_name: string }) {
     try {
+      const redirectUrl = `${typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://manager-tool.vercel.app'}/auth/callback`
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: metadata.full_name,
             store_name: metadata.store_name,

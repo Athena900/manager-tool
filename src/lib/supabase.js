@@ -18,7 +18,12 @@ const defaultKey = 'dummy_key'
 
 export const supabase = createClient(
   supabaseUrl || defaultUrl,
-  supabaseAnonKey || defaultKey
+  supabaseAnonKey || defaultKey,
+  {
+    auth: {
+      redirectTo: process.env.NEXT_PUBLIC_SITE_URL || 'https://manager-tool.vercel.app/auth/callback'
+    }
+  }
 )
 
 export const salesAPI = {
