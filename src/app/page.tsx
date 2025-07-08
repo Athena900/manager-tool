@@ -9,6 +9,7 @@ import { authService } from '@/lib/auth'
 import DataIsolationDebug from '@/components/debug/DataIsolationDebug'
 import RealtimeDebug from '@/components/debug/RealtimeDebug'
 import AuthDebug from '@/components/debug/AuthDebug'
+import DataIsolationTest from '@/components/debug/DataIsolationTest'
 
 interface Sale {
   id: string
@@ -155,7 +156,45 @@ function BarSalesManager() {
   const initializeData = async () => {
     setIsLoading(true)
     try {
+      console.log('=== メインページデータ初期化開始 ===')
+      
+      // 認証状態の事前確認
+      const { user } = await authService.getCurrentUser()
+      if (!user) {
+        console.error('データ初期化: ユーザーが認証されていません')
+        throw new Error('ユーザーが認証されていません')
+      }
+      
+      console.log('認証確認完了:', user.id)
+      
+      // 安全なデータ取得
       const salesData = await salesAPI.fetchAll()
+      console.log(`データ取得完了: ${salesData.length}件`)
+      
+      // データのセキュリティ検証
+      if (salesData.length > 0) {
+        const userIds = Array.from(new Set(salesData.map(sale => sale.user_id).filter(Boolean)))
+        console.log('取得されたデータのuser_id:', userIds)
+        
+        if (userIds.length > 1) {
+          console.error('🚨 データセキュリティエラー: 複数のuser_idが混在')
+          console.error('期待:', [user.id])
+          console.error('実際:', userIds)
+          throw new Error('データセキュリティエラー: 複数ユーザーのデータが混在しています')
+        }
+        
+        if (userIds.length === 1 && userIds[0] !== user.id) {
+          console.error('🚨 データセキュリティエラー: 他ユーザーのデータが含まれています')
+          console.error('期待:', user.id)
+          console.error('実際:', userIds[0])
+          throw new Error('データセキュリティエラー: 他ユーザーのデータが含まれています')
+        }
+        
+        console.log('✅ データセキュリティ検証完了: 全て正常')
+      } else {
+        console.log('✅ データなし（新規ユーザーまたはデータ未作成）')
+      }
+      
       setSales(salesData)
       setIsConnected(true)
       setLastSync(new Date())
@@ -166,6 +205,8 @@ function BarSalesManager() {
           setTargets(savedTargets)
         }
       }
+      
+      console.log('✅ メインページデータ初期化完了')
     } catch (error) {
       console.error('データの初期化に失敗:', error)
       setIsConnected(false)
@@ -627,6 +668,7 @@ function BarSalesManager() {
 
         {activeTab === 'overview' && (
           <>
+            <DataIsolationTest />
             <AuthDebug />
             <DataIsolationDebug />
             <RealtimeDebug />
