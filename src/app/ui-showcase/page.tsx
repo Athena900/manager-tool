@@ -223,7 +223,7 @@ export default function UIShowcase() {
             <div>
               <h3 className="text-lg font-medium mb-3">セクションローディング</h3>
               <div className="border border-gray-200 rounded-lg p-4">
-                <SectionLoading message="データを読み込み中..." />
+                <SectionLoading text="データを読み込み中..." />
               </div>
             </div>
           </div>
