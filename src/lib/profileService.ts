@@ -31,18 +31,21 @@ export class ProfileService {
         return { profile: null, error: 'ユーザーが認証されていません' }
       }
 
-      const { data: profile, error } = await supabase
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .limit(1)
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = 行が見つからない（正常なケース）
+      if (error) {
         return { profile: null, error: error.message }
       }
 
-      return { profile: profile as UserProfile, error: null }
+      if (profiles && profiles.length > 0) {
+        return { profile: profiles[0] as UserProfile, error: null }
+      } else {
+        return { profile: null, error: null } // プロフィールが存在しない（正常なケース）
+      }
     } catch (error) {
       return { profile: null, error: 'プロフィール取得中に予期しないエラーが発生しました' }
     }
@@ -79,7 +82,7 @@ export class ProfileService {
       console.log('User email:', user.email)
 
       // 実証実験モード用の緊急回避措置
-      const isEmergencyMode = true // 一時的にRLS問題を回避
+      const isEmergencyMode = false // 一時的に通常のINSERTのみを試行
       
       let data, error
       
@@ -101,20 +104,35 @@ export class ProfileService {
               store_name: storeName
             })
             .select()
-            .single()
           
-          data = insertData
-          error = insertError
+          if (insertError) {
+            data = null
+            error = insertError
+          } else if (insertData && insertData.length > 0) {
+            data = insertData[0]
+            error = null
+          } else {
+            data = null
+            error = new Error('プロフィールの作成に失敗しました（フォールバック）')
+          }
         } else {
           // RPC成功の場合、作成されたプロフィールを取得
           const { data: fetchData, error: fetchError } = await supabase
             .from('profiles')
             .select()
             .eq('user_id', user.id)
-            .single()
+            .limit(1)
           
-          data = fetchData
-          error = fetchError
+          if (fetchError) {
+            data = null
+            error = fetchError
+          } else if (fetchData && fetchData.length > 0) {
+            data = fetchData[0]
+            error = null
+          } else {
+            data = null
+            error = new Error('プロフィールが作成されましたが、取得に失敗しました')
+          }
         }
       } else {
         // 通常のINSERT
@@ -125,10 +143,17 @@ export class ProfileService {
             store_name: storeName
           })
           .select()
-          .single()
         
-        data = insertData
-        error = insertError
+        if (insertError) {
+          data = null
+          error = insertError
+        } else if (insertData && insertData.length > 0) {
+          data = insertData[0]
+          error = null
+        } else {
+          data = null
+          error = new Error('プロフィールの作成に失敗しました')
+        }
       }
 
       if (error) {
