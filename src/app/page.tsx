@@ -52,6 +52,8 @@ function BarSalesManager() {
   const [isConnected, setIsConnected] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [lastSync, setLastSync] = useState<Date | null>(null)
+  const [showDebugTools, setShowDebugTools] = useState(false)
+  const [rlsDiagnosticResult, setRlsDiagnosticResult] = useState<any>(null)
   
   const [formData, setFormData] = useState<FormData>({
     date: new Date().toISOString().split('T')[0],
@@ -597,8 +599,166 @@ function BarSalesManager() {
     link.click()
   }
 
+  const runEmergencyRLSDiagnostic = async () => {
+    try {
+      console.log('=== 緊急RLS診断開始 ===')
+      
+      const { user } = await authService.getCurrentUser()
+      
+      if (!user) {
+        setRlsDiagnosticResult({ error: 'ユーザーが認証されていません' })
+        return
+      }
+
+      // 明示的フィルターでのクエリ
+      const { data: explicitData, error: explicitError } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('user_id', user.id)
+      
+      // RLSのみでのクエリ（フィルターなし）
+      const { data: rlsData, error: rlsError } = await supabase
+        .from('sales')
+        .select('*')
+      
+      // ユニークなuser_IDを取得
+      const uniqueUserIds = new Set<string>()
+      rlsData?.forEach(sale => {
+        if (sale.user_id) uniqueUserIds.add(sale.user_id)
+      })
+
+      const result = {
+        currentUserId: user.id,
+        userEmail: user.email || null,
+        explicitFilterCount: explicitData?.length || 0,
+        rlsOnlyCount: rlsData?.length || 0,
+        uniqueUserIds: Array.from(uniqueUserIds),
+        uniqueUserCount: uniqueUserIds.size,
+        dataConsistency: (explicitData?.length || 0) === (rlsData?.length || 0) ? '✅ 正常' : '❌ 異常',
+        rlsStatus: (explicitData?.length || 0) === (rlsData?.length || 0) && uniqueUserIds.size <= 1 ? '✅ 正常動作' : '❌ 動作不良',
+        timestamp: new Date().toLocaleString('ja-JP')
+      }
+
+      console.log('緊急診断結果:', result)
+      setRlsDiagnosticResult(result)
+      
+    } catch (error) {
+      console.error('診断エラー:', error)
+      setRlsDiagnosticResult({ error: error instanceof Error ? error.message : '診断中にエラーが発生しました' })
+    }
+  }
+
   return (
     <div className={`min-h-screen ${theme.bg} p-4 transition-colors duration-300`}>
+      {/* 緊急デバッグボタン（固定位置） */}
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={() => setShowDebugTools(!showDebugTools)}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold shadow-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+        >
+          🔧 DEBUG
+        </button>
+      </div>
+
+      {/* 緊急RLS診断ツール（モーダル） */}
+      {showDebugTools && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-red-600">🚨 緊急デバッグツール</h2>
+              <button
+                onClick={() => setShowDebugTools(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* RLS診断セクション */}
+            <div className="border-2 border-red-200 bg-red-50 p-4 rounded-lg mb-4">
+              <h3 className="text-lg font-bold text-red-800 mb-3">RLS診断ツール</h3>
+              
+              <button
+                onClick={runEmergencyRLSDiagnostic}
+                className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors mb-4"
+              >
+                診断を実行
+              </button>
+
+              {rlsDiagnosticResult && (
+                <div className="bg-white p-4 rounded border border-red-300">
+                  {rlsDiagnosticResult.error ? (
+                    <div className="text-red-600">
+                      <strong>エラー:</strong> {rlsDiagnosticResult.error}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">明示的フィルター（WHERE user_id = ?）:</p>
+                          <p className="text-2xl font-bold">{rlsDiagnosticResult.explicitFilterCount}件</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">RLSのみ（フィルターなし）:</p>
+                          <p className="text-2xl font-bold">{rlsDiagnosticResult.rlsOnlyCount}件</p>
+                        </div>
+                      </div>
+                      
+                      <div className={`p-3 rounded ${
+                        rlsDiagnosticResult.rlsStatus === '✅ 正常動作' 
+                          ? 'bg-green-100 border border-green-300' 
+                          : 'bg-red-100 border border-red-300'
+                      }`}>
+                        <p className="font-bold">
+                          RLSステータス: {rlsDiagnosticResult.rlsStatus}
+                        </p>
+                        <p className="text-sm mt-1">
+                          データ整合性: {rlsDiagnosticResult.dataConsistency}
+                        </p>
+                        <p className="text-sm">
+                          検出されたユーザーID数: {rlsDiagnosticResult.uniqueUserCount}種類
+                        </p>
+                      </div>
+
+                      <div className="text-sm text-gray-600">
+                        <p><strong>現在のユーザーID:</strong> {rlsDiagnosticResult.currentUserId}</p>
+                        <p><strong>メール:</strong> {rlsDiagnosticResult.userEmail}</p>
+                        <p><strong>診断実行時刻:</strong> {rlsDiagnosticResult.timestamp}</p>
+                      </div>
+
+                      {rlsDiagnosticResult.uniqueUserIds.length > 0 && (
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-300 rounded">
+                          <p className="font-semibold text-sm mb-1">検出されたuser_ID一覧:</p>
+                          {rlsDiagnosticResult.uniqueUserIds.map((id: string, index: number) => (
+                            <div key={index} className="text-xs font-mono">
+                              {id} {id === rlsDiagnosticResult.currentUserId && '(現在のユーザー)'}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* その他のデバッグツールへのアクセス */}
+            <div className="border-t pt-4">
+              <p className="text-sm text-gray-600 mb-2">タブを切り替えてその他のデバッグツールを表示:</p>
+              <button
+                onClick={() => {
+                  setActiveTab('overview')
+                  setShowDebugTools(false)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                概要タブを表示
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className={`${theme.card} rounded-lg shadow-md p-4 sm:p-6 mb-6`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
