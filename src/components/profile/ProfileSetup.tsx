@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Store, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { ProfileService } from '@/lib/profileService'
 
 export default function ProfileSetup() {
   const [storeName, setStoreName] = useState('')
@@ -77,26 +78,24 @@ export default function ProfileSetup() {
     setLoading(true)
 
     try {
-      // プロフィール作成
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: user.id,
-          store_name: storeName.trim()
-        })
-        .select()
-
-      console.log('プロフィール作成結果:', data)
-      console.log('プロフィール作成エラー:', error)
+      // プロフィール作成（ProfileService使用）
+      const profileService = ProfileService.getInstance()
+      const { profile, error } = await profileService.createProfile(storeName.trim())
 
       if (error) {
         console.error('プロフィール作成エラー:', error)
-        alert(`プロフィール作成に失敗しました: ${error.message}`)
+        alert(`プロフィール作成に失敗しました: ${error}`)
+        return
+      }
+
+      if (!profile) {
+        console.error('プロフィール作成失敗: データが返されませんでした')
+        alert('プロフィール作成に失敗しました: データが返されませんでした')
         return
       }
 
       console.log('プロフィール作成成功!')
-      console.log('作成されたプロフィール:', data[0])
+      console.log('作成されたプロフィール:', profile)
 
       // 既存の売上データがある場合、user_idを関連付け
       console.log('既存売上データの関連付けを開始...')
