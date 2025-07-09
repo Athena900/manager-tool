@@ -36,7 +36,8 @@ if (typeof window !== 'undefined') {
 }
 
 export const salesAPI = {
-  async fetchAll() {
+  // 後方互換性のため、引数なしの場合は既存ロジック
+  async fetchAll(storeId = null) {
     // 現在のユーザーIDを取得
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
@@ -47,24 +48,31 @@ export const salesAPI = {
 
     console.log('=== ユーザー別データ取得開始 ===')
     console.log('ユーザーID:', user.id)
+    console.log('店舗ID:', storeId)
 
-    // 実証実験モードの判定
+    // 実証実験モードの判定（店舗IDが指定されていない場合）
     const pilotUsers = [
       '635c35fb-0159-4bb9-9ab8-8933eb04ee31',  // オーナー
       '56d64ad6-165a-4841-bfcd-a78329f322e5',  // スタッフ1
       '0aba16a3-531d-4f7a-a9a3-6ca29537d349'   // スタッフ2
     ]
     
-    const isPilotMode = pilotUsers.includes(user.id)
+    const isPilotMode = pilotUsers.includes(user.id) && !storeId
     
-    // 実証実験モードでは全データ、通常モードでは自分のデータのみ
     let query = supabase.from('sales').select('*')
     
-    if (!isPilotMode) {
+    if (storeId) {
+      // 新しい店舗ベースモード
+      console.log('📊 モード: 店舗ベース（招待制）')
+      query = query.eq('store_id', storeId)
+    } else if (!isPilotMode) {
       // 通常モード: 明示的なuser_idフィルター（RLSとの二重保護）
+      console.log('📊 モード: 通常モード（個別分離）')
       query = query.eq('user_id', user.id)  // 🔑 明示的なユーザーフィルター
+    } else {
+      // 実証実験モード: RLSポリシーのみに依存（3人で共有）
+      console.log('📊 モード: 実証実験モード（データ共有）')
     }
-    // 実証実験モード: RLSポリシーのみに依存（3人で共有）
     
     const { data, error } = await query.order('date', { ascending: false })
     
@@ -74,10 +82,17 @@ export const salesAPI = {
     }
 
     console.log(`✅ ユーザー ${user.id} のデータ ${data.length}件を取得しました`)
-    console.log(`📊 モード: ${isPilotMode ? '実証実験モード（データ共有）' : '通常モード（個別分離）'}`)
     
-    // セキュリティチェック: 実証実験モードでは3人のデータ、通常モードでは自分のデータのみ
-    if (!isPilotMode) {
+    // セキュリティチェック
+    if (storeId) {
+      // 店舗ベースモード: store_idが正しいことを確認
+      const invalidData = data.filter(item => item.store_id !== storeId)
+      if (invalidData.length > 0) {
+        console.error('🚨 セキュリティエラー: 異なる店舗のデータが含まれています')
+        console.error('無効データ:', invalidData)
+        throw new Error('データ取得でセキュリティエラーが発生しました')
+      }
+    } else if (!isPilotMode) {
       // 通常モード: 自分のデータのみ許可
       const invalidData = data.filter(item => item.user_id !== user.id)
       if (invalidData.length > 0) {
