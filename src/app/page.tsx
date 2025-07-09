@@ -57,7 +57,7 @@ function BarSalesManager() {
   // 招待制システム用のstate（本格運用対応）
   const [currentStoreId, setCurrentStoreId] = useState<string | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
-  const [showStoreFeatures, setShowStoreFeatures] = useState(true) // 本格運用モード有効化
+  const [showStoreFeatures, setShowStoreFeatures] = useState(true) // テスト用に再有効化
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [isConnected, setIsConnected] = useState(true)
@@ -851,7 +851,10 @@ function BarSalesManager() {
                 <p className={`${theme.textSecondary} text-sm sm:text-base`}>
                   バー売上管理
                 </p>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    🧪 実証実験
+                  </span>
                   {isConnected ? (
                     <Cloud size={16} className="text-green-500" />
                   ) : (
@@ -914,7 +917,13 @@ function BarSalesManager() {
               </button>
               {showStoreFeatures && (
                 <button
-                  onClick={() => setShowInviteModal(true)}
+                  onClick={() => {
+                    if (!currentStoreId) {
+                      alert('招待機能を使用するには、まず店舗を選択してください。\n\n現在は実証実験モードのため、店舗機能は準備中です。')
+                      return
+                    }
+                    setShowInviteModal(true)
+                  }}
                   className="bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
                 >
                   <UserPlus size={16} />

@@ -316,13 +316,29 @@ export const checkAdminPermissions = async (): Promise<ApiResponse<boolean>> => 
       return false
     }
 
+    // 実証実験モードのパイロットユーザーID（ハードコード）
+    const pilotUsers = [
+      '635c35fb-0159-4bb9-9ab8-8933eb04ee31',  // オーナー
+      '56d64ad6-165a-4841-bfcd-a78329f322e5',  // スタッフ1
+      '0aba16a3-531d-4f7a-a9a3-6ca29537d349'   // スタッフ2
+    ]
+    
     // パイロットユーザーの場合は管理者権限あり
-    const configResponse = await getSystemConfig()
-    if (configResponse.success && configResponse.data) {
-      const pilotUsers = configResponse.data.pilot_mode.users
-      if (pilotUsers.includes(user.id)) {
-        return true
+    if (pilotUsers.includes(user.id)) {
+      return true
+    }
+
+    // システム設定からパイロットユーザーを取得を試行（フォールバック）
+    try {
+      const configResponse = await getSystemConfig()
+      if (configResponse.success && configResponse.data) {
+        const configPilotUsers = configResponse.data.pilot_mode.users
+        if (configPilotUsers.includes(user.id)) {
+          return true
+        }
       }
+    } catch (error) {
+      console.log('システム設定取得失敗（パイロットモードでは正常）:', error)
     }
 
     // 店舗オーナーの場合は管理者権限あり
@@ -331,7 +347,10 @@ export const checkAdminPermissions = async (): Promise<ApiResponse<boolean>> => 
       .select('id')
       .eq('owner_id', user.id)
 
-    if (ownerError) throw ownerError
+    if (ownerError) {
+      console.log('店舗チェックエラー（実証実験モードでは正常）:', ownerError)
+      return false
+    }
 
     return ownerStores.length > 0
   }).then(result => {

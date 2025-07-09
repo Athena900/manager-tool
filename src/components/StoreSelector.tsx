@@ -107,10 +107,13 @@ export default function StoreSelector({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           店舗選択
         </label>
-        <div className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600">
+        <div className="w-full p-3 border border-blue-200 rounded-lg bg-blue-50 text-blue-700">
           <div className="flex items-center gap-2">
             <Store className="w-4 h-4" />
-            <span className="text-sm">参加している店舗がありません</span>
+            <span className="text-sm">🚧 実証実験モード - 店舗機能準備中</span>
+          </div>
+          <div className="mt-2 text-xs text-blue-600">
+            現在は個人ベースでデータ管理しています
           </div>
         </div>
       </div>
