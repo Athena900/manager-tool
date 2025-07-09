@@ -627,15 +627,40 @@ function BarSalesManager() {
         if (sale.user_id) uniqueUserIds.add(sale.user_id)
       })
 
+      // 実証実験モードの判定
+      const pilotUsers = [
+        '635c35fb-0159-4bb9-9ab8-8933eb04ee31',  // オーナー
+        '56d64ad6-165a-4841-bfcd-a78329f322e5',  // スタッフ1
+        '0aba16a3-531d-4f7a-a9a3-6ca29537d349'   // スタッフ2
+      ]
+      
+      const isPilotMode = pilotUsers.includes(user.id)
+      const explicitCount = explicitData?.length || 0
+      const rlsCount = rlsData?.length || 0
+      
+      let dataConsistency, rlsStatus
+      
+      if (isPilotMode) {
+        // 実証実験モード: 3人が同じデータを共有
+        dataConsistency = rlsCount > 0 ? '✅ 正常（実証実験モード）' : '❌ 異常'
+        rlsStatus = rlsCount > 0 && uniqueUserIds.size >= 1 ? '✅ 実証実験モード動作' : '❌ 動作不良'
+      } else {
+        // 通常モード: 個別分離
+        dataConsistency = explicitCount === rlsCount ? '✅ 正常' : '❌ 異常'
+        rlsStatus = explicitCount === rlsCount && uniqueUserIds.size <= 1 ? '✅ 正常動作' : '❌ 動作不良'
+      }
+
       const result = {
         currentUserId: user.id,
         userEmail: user.email || null,
-        explicitFilterCount: explicitData?.length || 0,
-        rlsOnlyCount: rlsData?.length || 0,
+        explicitFilterCount: explicitCount,
+        rlsOnlyCount: rlsCount,
         uniqueUserIds: Array.from(uniqueUserIds),
         uniqueUserCount: uniqueUserIds.size,
-        dataConsistency: (explicitData?.length || 0) === (rlsData?.length || 0) ? '✅ 正常' : '❌ 異常',
-        rlsStatus: (explicitData?.length || 0) === (rlsData?.length || 0) && uniqueUserIds.size <= 1 ? '✅ 正常動作' : '❌ 動作不良',
+        dataConsistency,
+        rlsStatus,
+        isPilotMode,
+        pilotInfo: isPilotMode ? '実証実験中 - 3人でデータ共有' : null,
         timestamp: new Date().toLocaleString('ja-JP')
       }
 
@@ -705,7 +730,7 @@ function BarSalesManager() {
                       </div>
                       
                       <div className={`p-3 rounded ${
-                        rlsDiagnosticResult.rlsStatus === '✅ 正常動作' 
+                        rlsDiagnosticResult.rlsStatus?.includes('✅') 
                           ? 'bg-green-100 border border-green-300' 
                           : 'bg-red-100 border border-red-300'
                       }`}>
@@ -718,6 +743,16 @@ function BarSalesManager() {
                         <p className="text-sm">
                           検出されたユーザーID数: {rlsDiagnosticResult.uniqueUserCount}種類
                         </p>
+                        {rlsDiagnosticResult.isPilotMode && (
+                          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                            <p className="text-sm font-semibold text-blue-800">
+                              🧪 {rlsDiagnosticResult.pilotInfo}
+                            </p>
+                            <p className="text-xs text-blue-600 mt-1">
+                              実証実験中は3人が同じデータを共有します
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-sm text-gray-600">
