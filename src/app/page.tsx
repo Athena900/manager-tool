@@ -3,13 +3,14 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts'
 import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi, Trash2 } from 'lucide-react'
-import { supabase, salesAPI } from '../lib/supabase'
+import { supabase, salesAPI, rlsDiagnostic } from '../lib/supabase'
 import AuthGuard from '@/components/auth/AuthGuard'
 import { authService } from '@/lib/auth'
 import DataIsolationDebug from '@/components/debug/DataIsolationDebug'
 import RealtimeDebug from '@/components/debug/RealtimeDebug'
 import AuthDebug from '@/components/debug/AuthDebug'
 import DataIsolationTest from '@/components/debug/DataIsolationTest'
+import RLSDiagnostic from '@/components/debug/RLSDiagnostic'
 
 interface Sale {
   id: string
@@ -171,7 +172,21 @@ function BarSalesManager() {
       const salesData = await salesAPI.fetchAll()
       console.log(`データ取得完了: ${salesData.length}件`)
       
-      // データのセキュリティ検証
+      // データのセキュリティ検証とRLS緊急診断
+      console.log('🚨 RLS動作不良緊急診断実行中...')
+      const rlsDiagResult = await rlsDiagnostic.runComprehensiveDiagnostic()
+      
+      if (rlsDiagResult.overallStatus !== '✅ RLS正常動作') {
+        console.error('🚨 RLS動作不良検出!')
+        console.error('総合状況:', rlsDiagResult.overallStatus)
+        console.error('重大問題:', rlsDiagResult.criticalIssues)
+        
+        // RLS動作不良が検出された場合でも、明示的フィルターで防御
+        console.warn('🚨 RLS不良でも明示的フィルターでデータを保護中')
+      } else {
+        console.log('✅ RLS正常動作確認')
+      }
+      
       if (salesData.length > 0) {
         const userIds = Array.from(new Set(salesData.map(sale => sale.user_id).filter(Boolean)))
         console.log('取得されたデータのuser_id:', userIds)
@@ -180,14 +195,25 @@ function BarSalesManager() {
           console.error('🚨 データセキュリティエラー: 複数のuser_idが混在')
           console.error('期待:', [user.id])
           console.error('実際:', userIds)
-          throw new Error('データセキュリティエラー: 複数ユーザーのデータが混在しています')
+          
+          // 不正データのフィルタリングで緊急対応
+          const validData = salesData.filter(sale => sale.user_id === user.id)
+          console.warn(`🚨 緊急対応: ${salesData.length}件から${validData.length}件にフィルタリング`)
+          setSales(validData)
+          setIsConnected(false)
+          return
         }
         
         if (userIds.length === 1 && userIds[0] !== user.id) {
           console.error('🚨 データセキュリティエラー: 他ユーザーのデータが含まれています')
           console.error('期待:', user.id)
           console.error('実際:', userIds[0])
-          throw new Error('データセキュリティエラー: 他ユーザーのデータが含まれています')
+          
+          // 他ユーザーのデータの場合は空にする
+          console.warn('🚨 緊急対応: 他ユーザーデータをブロック')
+          setSales([])
+          setIsConnected(false)
+          return
         }
         
         console.log('✅ データセキュリティ検証完了: 全て正常')
@@ -668,6 +694,7 @@ function BarSalesManager() {
 
         {activeTab === 'overview' && (
           <>
+            <RLSDiagnostic />
             <DataIsolationTest />
             <AuthDebug />
             <DataIsolationDebug />

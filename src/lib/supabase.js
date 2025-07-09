@@ -26,6 +26,15 @@ export const supabase = createClient(
   }
 )
 
+// RLS強制有効化とセキュリティ設定
+if (typeof window !== 'undefined') {
+  supabase.rpc('set_config', {
+    setting_name: 'row_security',
+    setting_value: 'on',
+    is_local: false
+  })
+}
+
 export const salesAPI = {
   async fetchAll() {
     // 現在のユーザーIDを取得
@@ -228,5 +237,226 @@ export const salesAPI = {
     })
     
     console.log('✅ 全てのリアルタイム同期を停止しました')
+  }
+}
+
+// ================================
+// RLS動作不良診断・修正機能
+// ================================
+
+/**
+ * RLS動作の詳細診断を実行
+ * @returns {Promise<Object>} 詳細診断結果
+ */
+export const rlsDiagnostic = {
+  /**
+   * RLSポリシーの詳細確認
+   */
+  async checkPolicies() {
+    try {
+      console.log('=== RLSポリシー診断開始 ===')
+      
+      // 現在のユーザー認証状態確認
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError) {
+        return {
+          success: false,
+          policies: [],
+          error: `認証エラー: ${userError.message}`
+        }
+      }
+      
+      // カスタムSQL実行でポリシー確認（pg_policiesは直接アクセス不可の場合があるため）
+      const { data: policies, error: sqlError } = await supabase
+        .rpc('get_table_policies', { table_name: 'sales' })
+      
+      if (sqlError) {
+        console.warn('カスタム関数でのポリシー取得失敗、代替手段を試行')
+        return {
+          success: false,
+          policies: [],
+          error: `ポリシー取得エラー: ${sqlError.message}`,
+          user: user ? { id: user.id, email: user.email } : null
+        }
+      }
+      
+      return {
+        success: true,
+        policies: policies || [],
+        error: null,
+        user: user ? { id: user.id, email: user.email } : null
+      }
+    } catch (err) {
+      console.error('RLSポリシー確認エラー:', err)
+      return {
+        success: false,
+        policies: [],
+        error: err.message
+      }
+    }
+  },
+
+  /**
+   * RLS有効状況確認
+   */
+  async checkRLSStatus() {
+    try {
+      console.log('=== RLS有効状況確認 ===')
+      
+      // 現在の認証ユーザー確認
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError) {
+        return {
+          success: false,
+          currentUser: null,
+          error: userError.message
+        }
+      }
+      
+      return {
+        success: true,
+        currentUser: {
+          id: user?.id || null,
+          email: user?.email || null
+        },
+        error: null
+      }
+    } catch (err) {
+      return {
+        success: false,
+        currentUser: null,
+        error: err.message
+      }
+    }
+  },
+
+  /**
+   * データアクセス比較テスト (明示的フィルター vs RLS)
+   */
+  async compareDataAccess() {
+    try {
+      console.log('=== データアクセス比較テスト開始 ===')
+      
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        return {
+          success: false,
+          error: 'ユーザー認証失敗',
+          explicitCount: 0,
+          rlsCount: 0,
+          isMatching: false
+        }
+      }
+      
+      // A. 明示的user_idフィルターでのデータ取得
+      console.log('明示的フィルターテスト実行中...')
+      const { data: explicitData, error: explicitError } = await supabase
+        .from('sales')
+        .select('id, user_id, date, total_sales')
+        .eq('user_id', user.id)
+      
+      if (explicitError) {
+        console.error('明示的フィルターエラー:', explicitError)
+        return {
+          success: false,
+          error: `明示的フィルターエラー: ${explicitError.message}`,
+          explicitCount: 0,
+          rlsCount: 0,
+          isMatching: false
+        }
+      }
+      
+      // B. RLSのみでのデータ取得
+      console.log('RLSのみテスト実行中...')
+      const { data: rlsData, error: rlsError } = await supabase
+        .from('sales')
+        .select('id, user_id, date, total_sales')
+      
+      if (rlsError) {
+        console.error('RLSテストエラー:', rlsError)
+        return {
+          success: false,
+          error: `RLSテストエラー: ${rlsError.message}`,
+          explicitCount: explicitData?.length || 0,
+          rlsCount: 0,
+          isMatching: false
+        }
+      }
+      
+      const explicitCount = explicitData?.length || 0
+      const rlsCount = rlsData?.length || 0
+      const isMatching = explicitCount === rlsCount
+      
+      // C. user_id分布確認
+      const rlsUserIds = Array.from(new Set(rlsData?.map(d => d.user_id).filter(Boolean) || []))
+      const hasValidUserIds = rlsUserIds.length === 0 || (rlsUserIds.length === 1 && rlsUserIds[0] === user.id)
+      
+      console.log(`🚨 重要診断結果:`)
+      console.log(`明示的フィルター: ${explicitCount}件`)
+      console.log(`RLSのみ: ${rlsCount}件`)
+      console.log(`一致状況: ${isMatching ? '✅ 正常' : '🚨 異常'}`)
+      console.log(`user_ID分布: ${rlsUserIds.length}種類`, rlsUserIds)
+      console.log(`user_ID妥当性: ${hasValidUserIds ? '✅ 正常' : '🚨 異常'}`)
+      
+      return {
+        success: true,
+        error: null,
+        explicitCount,
+        rlsCount,
+        isMatching,
+        rlsUserIds,
+        hasValidUserIds,
+        currentUserId: user.id,
+        rawData: {
+          explicit: explicitData,
+          rls: rlsData
+        }
+      }
+    } catch (err) {
+      console.error('データアクセス比較テストエラー:', err)
+      return {
+        success: false,
+        error: err.message,
+        explicitCount: 0,
+        rlsCount: 0,
+        isMatching: false
+      }
+    }
+  },
+
+  /**
+   * 包括的RLS診断実行
+   */
+  async runComprehensiveDiagnostic() {
+    console.log('🚨=== RLS動作不良緊急診断開始 ===🚨')
+    
+    const results = {
+      timestamp: new Date().toISOString(),
+      policies: await this.checkPolicies(),
+      rlsStatus: await this.checkRLSStatus(),
+      dataAccess: await this.compareDataAccess()
+    }
+    
+    // 総合判定
+    const isRLSWorking = results.dataAccess.success && results.dataAccess.isMatching && results.dataAccess.hasValidUserIds
+    const overallStatus = isRLSWorking ? '✅ RLS正常動作' : '🚨 RLS動作不良'
+    
+    results.overallStatus = overallStatus
+    results.criticalIssues = []
+    
+    if (!results.dataAccess.isMatching) {
+      results.criticalIssues.push(`データ件数不一致: 明示的${results.dataAccess.explicitCount}件 vs RLS${results.dataAccess.rlsCount}件`)
+    }
+    
+    if (!results.dataAccess.hasValidUserIds) {
+      results.criticalIssues.push(`不正user_ID検出: ${results.dataAccess.rlsUserIds?.length || 0}種類のuser_ID`)
+    }
+    
+    console.log('🚨=== RLS診断結果 ===🚨')
+    console.log('総合状況:', overallStatus)
+    console.log('重大問題:', results.criticalIssues)
+    console.log('詳細結果:', results)
+    
+    return results
   }
 }

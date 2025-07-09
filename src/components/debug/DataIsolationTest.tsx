@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, salesAPI } from '@/lib/supabase'
+import { supabase, salesAPI, rlsDiagnostic } from '@/lib/supabase'
 import { authService } from '@/lib/auth'
 
 interface DataIsolationTestResults {
@@ -35,6 +35,27 @@ export default function DataIsolationTest() {
   const [testResults, setTestResults] = useState<DataIsolationTestResults | null>(null)
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
+  const [rlsDiagnosticResults, setRlsDiagnosticResults] = useState<any>(null)
+  const [rlsLoading, setRlsLoading] = useState(false)
+
+  // RLS診断実行
+  const runRLSDiagnostic = async () => {
+    setRlsLoading(true)
+    try {
+      console.log('🚨 RLS動作不良緊急診断開始')
+      const results = await rlsDiagnostic.runComprehensiveDiagnostic()
+      setRlsDiagnosticResults(results)
+      console.log('🚨 RLS診断完了:', results)
+    } catch (error) {
+      console.error('RLS診断エラー:', error)
+      setRlsDiagnosticResults({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        overallStatus: '❌ 診断失敗'
+      })
+    } finally {
+      setRlsLoading(false)
+    }
+  }
 
   const runComprehensiveTest = async () => {
     setLoading(true)
@@ -252,6 +273,7 @@ export default function DataIsolationTest() {
   // 初回実行
   useEffect(() => {
     runComprehensiveTest()
+    runRLSDiagnostic()
   }, [])
 
   return (
@@ -278,6 +300,14 @@ export default function DataIsolationTest() {
           }`}
         >
           {autoRefresh ? '自動更新停止' : '自動更新開始'}
+        </button>
+
+        <button
+          onClick={runRLSDiagnostic}
+          disabled={rlsLoading}
+          className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-900 disabled:opacity-50"
+        >
+          {rlsLoading ? 'RLS診断中...' : '🚨 RLS緊急診断'}
         </button>
       </div>
 
@@ -363,6 +393,69 @@ export default function DataIsolationTest() {
               </div>
             </div>
           </div>
+
+          {/* RLS診断結果 */}
+          {rlsDiagnosticResults && (
+            <div className="bg-red-50 p-4 rounded-lg border border-red-300">
+              <h4 className="font-semibold text-red-800 mb-3">🚨 RLS動作不良緊急診断結果</h4>
+              
+              <div className={`p-3 rounded mb-3 ${
+                rlsDiagnosticResults.overallStatus === '✅ RLS正常動作'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                <strong>{rlsDiagnosticResults.overallStatus}</strong>
+              </div>
+              
+              {rlsDiagnosticResults.criticalIssues && rlsDiagnosticResults.criticalIssues.length > 0 && (
+                <div className="bg-red-100 p-3 rounded mb-3">
+                  <h5 className="font-semibold text-red-800 mb-2">🚨 重大問題 ({rlsDiagnosticResults.criticalIssues.length}件)</h5>
+                  <ul className="text-sm text-red-700 space-y-1">
+                    {rlsDiagnosticResults.criticalIssues.map((issue: string, idx: number) => (
+                      <li key={idx}>• {issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div className="bg-white p-3 rounded border">
+                  <h5 className="font-semibold mb-2">データアクセス比較</h5>
+                  {rlsDiagnosticResults.dataAccess && (
+                    <div className="space-y-1">
+                      <p><strong>明示的:</strong> {rlsDiagnosticResults.dataAccess.explicitCount}件</p>
+                      <p><strong>RLSのみ:</strong> {rlsDiagnosticResults.dataAccess.rlsCount}件</p>
+                      <p><strong>一致:</strong> {rlsDiagnosticResults.dataAccess.isMatching ? '✅' : '❌'}</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-white p-3 rounded border">
+                  <h5 className="font-semibold mb-2">認証状態</h5>
+                  {rlsDiagnosticResults.rlsStatus && (
+                    <div className="space-y-1">
+                      <p><strong>ユーザー:</strong> {rlsDiagnosticResults.rlsStatus.currentUser?.email || 'なし'}</p>
+                      <p><strong>認証:</strong> {rlsDiagnosticResults.rlsStatus.success ? '✅' : '❌'}</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-white p-3 rounded border">
+                  <h5 className="font-semibold mb-2">ポリシー状態</h5>
+                  {rlsDiagnosticResults.policies && (
+                    <div className="space-y-1">
+                      <p><strong>取得:</strong> {rlsDiagnosticResults.policies.success ? '✅' : '❌'}</p>
+                      <p><strong>件数:</strong> {rlsDiagnosticResults.policies.policies?.length || 0}個</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-3 text-xs text-gray-600">
+                診断実行時刻: {rlsDiagnosticResults.timestamp ? new Date(rlsDiagnosticResults.timestamp).toLocaleString() : '不明'}
+              </div>
+            </div>
+          )}
 
           {autoRefresh && (
             <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded text-sm">
