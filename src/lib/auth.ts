@@ -36,7 +36,7 @@ export class AuthService {
    */
   async signUp(email: string, password: string, metadata: { full_name: string, store_name: string }) {
     try {
-      const redirectUrl = `${typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://manager-tool.vercel.app'}/auth/callback`
+      const redirectUrl = `${typeof window !== 'undefined' ? window.location.origin : process.env['NEXT_PUBLIC_SITE_URL'] || 'https://manager-tool.vercel.app'}/auth/callback`
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -211,7 +211,7 @@ export class AuthService {
   async resetPassword(email: string) {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://manager-tool.vercel.app'}/auth/callback`
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : process.env['NEXT_PUBLIC_SITE_URL'] || 'https://manager-tool.vercel.app'}/auth/callback`
       })
 
       if (error) {

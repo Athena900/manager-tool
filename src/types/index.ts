@@ -155,7 +155,7 @@ export interface InvitePageState {
   loading: boolean
   error: string | null
   success: boolean
-  user: User | null
+  user: import('@supabase/auth-js').User | null
   invitation: StoreInvitation | null
 }
 

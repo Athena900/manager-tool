@@ -415,7 +415,7 @@ export function measurePerformance<T extends any[], R>(
     const result = await fn(...args)
     const end = performance.now()
     
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
       console.log(`⚡ ${label || fn.name}: ${(end - start).toFixed(2)}ms`)
     }
     

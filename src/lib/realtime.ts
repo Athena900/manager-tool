@@ -355,7 +355,7 @@ export class RealtimeManager {
 
 // デフォルトのリアルタイムマネージャーインスタンス
 export const realtimeManager = new RealtimeManager({
-  enableLogging: process.env.NODE_ENV === 'development'
+  enableLogging: process.env['NODE_ENV'] === 'development'
 })
 
 // ユーティリティ関数

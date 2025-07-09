@@ -38,9 +38,9 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, darkMode = fals
     console.log('Email:', formData.email)
     console.log('Password length:', formData.password.length)
     console.log('Environment check:', {
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
-      hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      supabaseUrl: process.env['NEXT_PUBLIC_SUPABASE_URL'],
+      siteUrl: process.env['NEXT_PUBLIC_SITE_URL'],
+      hasAnonKey: !!process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']
     })
 
     try {
@@ -178,7 +178,7 @@ export default function LoginForm({ onSuccess, onSwitchToSignup, darkMode = fals
       </div>
 
       {/* デバッグ用パスワードリセットテスト */}
-      {process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG === 'true' ? (
+      {process.env['NODE_ENV'] === 'development' || process.env['NEXT_PUBLIC_DEBUG'] === 'true' ? (
         <PasswordResetTest email={formData.email} />
       ) : null}
     </div>

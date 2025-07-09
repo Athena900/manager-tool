@@ -164,7 +164,7 @@ export function logError(error: AppError, context?: string): void {
   }
 
   // 開発環境では詳細ログ
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env['NODE_ENV'] === 'development') {
     console.error('🚨 AppError:', logData)
   } else {
     // 本番環境では必要最小限のログ

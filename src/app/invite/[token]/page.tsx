@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { UserPlus, CheckCircle, AlertCircle, Clock, Mail, Store } from 'lucide-react'
 import { acceptInvitation } from '@/lib/stores'
 import { supabase } from '@/lib/supabase'
-import type { InvitePageState, StoreInvitation, User, UserRole } from '@/types'
+import type { InvitePageState, StoreInvitation, UserRole } from '@/types'
+import type { User } from '@supabase/auth-js'
 
 export default function InvitePage() {
   const params = useParams()
@@ -28,7 +29,7 @@ export default function InvitePage() {
       
       if (!user) {
         // 未ログインの場合はログインページへリダイレクト
-        const redirectUrl = `/invite/${params.token}`
+        const redirectUrl = `/invite/${params['token']}`
         router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`)
         return
       }
@@ -36,7 +37,7 @@ export default function InvitePage() {
       setState(prev => ({ ...prev, user }))
       
       // 招待情報を取得して表示
-      await getInvitationInfo(params.token as string)
+      await getInvitationInfo(params['token'] as string)
       
     } catch (err) {
       console.error('認証確認エラー:', err)
@@ -103,7 +104,7 @@ export default function InvitePage() {
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
-      const response = await acceptInvitation(params.token as string)
+      const response = await acceptInvitation(params['token'] as string)
       
       if (!response.success || response.error) {
         setState(prev => ({ 
@@ -213,7 +214,7 @@ export default function InvitePage() {
               招待を受け入れました
             </h1>
             <p className="text-gray-600 mb-6">
-              {state.invitation?.stores?.name} のメンバーになりました
+              {state.invitation?.store?.name} のメンバーになりました
             </p>
             <div className="w-full px-4 py-2 bg-green-50 text-green-700 rounded-lg">
               店舗ページに移動中...
@@ -249,7 +250,7 @@ export default function InvitePage() {
                   <Store className="w-5 h-5 text-gray-600" />
                   <div>
                     <div className="font-medium text-gray-900">
-                      {state.invitation.stores.name}
+                      {state.invitation.store?.name}
                     </div>
                     <div className="text-sm text-gray-600">
                       店舗名

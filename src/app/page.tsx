@@ -65,7 +65,7 @@ function BarSalesManager() {
   const [rlsDiagnosticResult, setRlsDiagnosticResult] = useState<any>(null)
   
   const [formData, setFormData] = useState<FormData>({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split('T')[0] || '',
     groupCount: '',
     totalSales: '',
     cardSales: '',
