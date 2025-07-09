@@ -35,7 +35,7 @@ export default function StoreSelector({
       setStores(response.data || [])
       
       // 店舗が1つだけの場合は自動選択
-      if (response.data?.length === 1 && !currentStoreId) {
+      if (response.data?.length === 1 && !currentStoreId && response.data[0]) {
         onStoreChange(response.data[0].id)
       }
       

@@ -6,11 +6,11 @@ import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarCha
 import { supabase, salesAPI, rlsDiagnostic } from '../lib/supabase'
 import AuthGuard from '@/components/auth/AuthGuard'
 import { authService } from '@/lib/auth'
-import DataIsolationDebug from '@/components/debug/DataIsolationDebug'
-import RealtimeDebug from '@/components/debug/RealtimeDebug'
-import AuthDebug from '@/components/debug/AuthDebug'
-import DataIsolationTest from '@/components/debug/DataIsolationTest'
-import RLSDiagnostic from '@/components/debug/RLSDiagnostic'
+// import DataIsolationDebug from '@/components/debug/DataIsolationDebug'
+// import RealtimeDebug from '@/components/debug/RealtimeDebug'
+// import AuthDebug from '@/components/debug/AuthDebug'
+// import DataIsolationTest from '@/components/debug/DataIsolationTest'
+// import RLSDiagnostic from '@/components/debug/RLSDiagnostic'
 import StoreSelector from '@/components/StoreSelector'
 import InviteModal from '@/components/InviteModal'
 import AdminPanel from '@/components/admin/AdminPanel'
@@ -21,17 +21,19 @@ interface Sale {
   day_of_week: string
   group_count: number
   total_sales: number
-  card_sales?: number
-  paypay_sales?: number
-  cash_sales?: number
-  expenses?: number
-  profit?: number
-  average_spend?: number
-  event?: string
-  notes?: string
-  updated_by?: string
+  card_sales?: number | null
+  paypay_sales?: number | null
+  cash_sales?: number | null
+  expenses?: number | null
+  profit?: number | null
+  average_spend?: number | null
+  event?: string | null
+  notes?: string | null
+  updated_by?: string | null
   created_at?: string
   updated_at?: string
+  user_id: string
+  store_id?: string | null
 }
 
 interface FormData {
@@ -102,7 +104,7 @@ function BarSalesManager() {
         console.log('=== セキュアなリアルタイム購読開始 ===')
         console.log('ユーザーID:', user.id)
         
-        subscription = await salesAPI.subscribeToChanges((payload) => {
+        subscription = await salesAPI.subscribeToChanges((payload: any) => {
           console.log('ユーザー固有のリアルタイム更新を受信:', payload)
           setLastSync(new Date())
           
@@ -180,17 +182,17 @@ function BarSalesManager() {
       console.log('認証確認完了:', user.id)
       
       // 安全なデータ取得（店舗ベースまたは従来方式）
-      const salesData = await salesAPI.fetchAll(currentStoreId)
+      const salesData = await salesAPI.fetchAll(currentStoreId || null)
       console.log(`データ取得完了: ${salesData.length}件`)
       
       // データのセキュリティ検証とRLS緊急診断
       console.log('🚨 RLS動作不良緊急診断実行中...')
       const rlsDiagResult = await rlsDiagnostic.runComprehensiveDiagnostic()
       
-      if (rlsDiagResult.overallStatus !== '✅ RLS正常動作') {
+      if ((rlsDiagResult as any).overallStatus !== '✅ RLS正常動作') {
         console.error('🚨 RLS動作不良検出!')
-        console.error('総合状況:', rlsDiagResult.overallStatus)
-        console.error('重大問題:', rlsDiagResult.criticalIssues)
+        console.error('総合状況:', (rlsDiagResult as any).overallStatus)
+        console.error('重大問題:', (rlsDiagResult as any).criticalIssues)
         
         // RLS動作不良が検出された場合でも、明示的フィルターで防御
         console.warn('🚨 RLS不良でも明示的フィルターでデータを保護中')
@@ -380,9 +382,12 @@ function BarSalesManager() {
       setIsConnected(false)
       const newSale: Sale = { 
         ...saleData, 
+        event: saleData.event || null,
         id: editingId || Date.now().toString(),
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        user_id: 'temp-user-id',
+        store_id: currentStoreId
       }
       if (editingId) {
         setSales(prev => prev.map(sale => sale.id === editingId ? newSale : sale))
@@ -393,7 +398,7 @@ function BarSalesManager() {
     }
 
     setFormData({
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split('T')[0] || '',
       groupCount: '',
       totalSales: '',
       cardSales: '',
@@ -641,6 +646,7 @@ function BarSalesManager() {
   }
 
   const runEmergencyRLSDiagnostic = async () => {
+    /*
     try {
       console.log('=== 緊急RLS診断開始 ===')
       
@@ -712,6 +718,7 @@ function BarSalesManager() {
       console.error('診断エラー:', error)
       setRlsDiagnosticResult({ error: error instanceof Error ? error.message : '診断中にエラーが発生しました' })
     }
+    */
   }
 
   return (
@@ -744,12 +751,12 @@ function BarSalesManager() {
             <div className="border-2 border-red-200 bg-red-50 p-4 rounded-lg mb-4">
               <h3 className="text-lg font-bold text-red-800 mb-3">RLS診断ツール</h3>
               
-              <button
+              {/* <button
                 onClick={runEmergencyRLSDiagnostic}
                 className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors mb-4"
               >
                 診断を実行
-              </button>
+              </button> */}
 
               {rlsDiagnosticResult && (
                 <div className="bg-white p-4 rounded border border-red-300">
@@ -955,11 +962,11 @@ function BarSalesManager() {
 
         {activeTab === 'overview' && (
           <>
-            <RLSDiagnostic />
+            {/* <RLSDiagnostic />
             <DataIsolationTest />
             <AuthDebug />
             <DataIsolationDebug />
-            <RealtimeDebug />
+            <RealtimeDebug /> */}
             <div className={`${theme.card} p-4 sm:p-6 rounded-lg shadow-md mb-6`}>
               <h3 className={`text-base sm:text-lg font-semibold mb-4 ${theme.text}`}>目標達成率</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -999,9 +1006,9 @@ function BarSalesManager() {
                 { label: 'カード売上', value: stats.totalCardSales, color: 'blue', icon: '💳', sub: `${Math.round(stats.cardRatio)}%` },
                 { label: 'PayPay売上', value: stats.totalPaypaySales, color: 'purple', icon: '📱', sub: `${Math.round(stats.paypayRatio)}%` },
                 { label: '現金売上', value: stats.totalCashSales, color: 'green', icon: '💵', sub: `${Math.round(stats.cashRatio)}%` },
-                { label: '総経費', value: stats.totalExpenses, color: 'red', icon: '📋', sub: `日平均: ¥${Math.round(stats.totalExpenses / Math.max(sales.length, 1)).toLocaleString()}` },
-                { label: '純利益', value: stats.totalProfit, color: 'indigo', icon: TrendingUp, sub: `利益率: ${Math.round(stats.overallProfitRate)}%` },
-                { label: '平均利益率', value: `${Math.round(stats.overallProfitRate)}%`, color: stats.overallProfitRate >= 80 ? 'green' : stats.overallProfitRate >= 60 ? 'yellow' : 'red', icon: '📊', sub: `日割り: ¥${Math.round(stats.dailyProfit).toLocaleString()}` }
+                { label: '総経費', value: stats.totalExpenses, color: 'red', icon: '📋', sub: `日平均: ¥${Math.round((stats.totalExpenses || 0) / Math.max(sales.length, 1)).toLocaleString()}` },
+                { label: '純利益', value: stats.totalProfit, color: 'indigo', icon: TrendingUp, sub: `利益率: ${Math.round(stats.overallProfitRate || 0)}%` },
+                { label: '平均利益率', value: `${Math.round(stats.overallProfitRate || 0)}%`, color: (stats.overallProfitRate || 0) >= 80 ? 'green' : (stats.overallProfitRate || 0) >= 60 ? 'yellow' : 'red', icon: '📊', sub: `日割り: ¥${Math.round(stats.dailyProfit).toLocaleString()}` }
               ].map((stat, index) => (
                 <div key={index} className={`${theme.card} p-3 sm:p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300`}>
                   <div className="flex items-center justify-between">
@@ -1394,7 +1401,7 @@ function BarSalesManager() {
                     setShowForm(false)
                     setEditingId(null)
                     setFormData({
-                      date: new Date().toISOString().split('T')[0],
+                      date: new Date().toISOString().split('T')[0] || '',
                       groupCount: '',
                       totalSales: '',
                       cardSales: '',

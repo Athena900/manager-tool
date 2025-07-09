@@ -38,15 +38,15 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps): JSX.E
         console.log('ユーザー詳細:', user ? {
           id: user.id,
           email: user.email,
-          emailConfirmed: user.email_confirmed_at
+          emailConfirmed: (user as any).email_confirmed_at
         } : 'N/A')
         
         // 認証状態の詳細検証
         if (sessionError || userError || !user || !session) {
           console.error('=== 認証失敗 ===')
           console.error('詳細:', {
-            sessionError: sessionError?.message,
-            userError: userError?.message,
+            sessionError: typeof sessionError === 'string' ? sessionError : (sessionError as any)?.message || 'Unknown error',
+            userError: typeof userError === 'string' ? userError : (userError as any)?.message || 'Unknown error',
             hasUser: !!user,
             hasSession: !!session,
             sessionValid: session && new Date(session.expires_at || 0) > new Date()

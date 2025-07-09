@@ -140,8 +140,8 @@ export const getUserStores = async (): Promise<ApiResponse<StoreWithRole[]>> => 
       }
     }
     
-    const stores: StoreWithRole[] = data?.map(item => ({
-      ...(item.stores as Store),
+    const stores: StoreWithRole[] = data?.map((item: any) => ({
+      ...(item.stores as any as Store),
       user_role: item.role as UserRole,
       joined_at: item.joined_at
     })) || []

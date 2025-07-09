@@ -200,7 +200,7 @@ export class AuthService {
    * 認証状態変更の監視
    */
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabase.auth.onAuthStateChange((event: any, session: any) => {
       callback(event, session)
     })
   }

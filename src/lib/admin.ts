@@ -61,7 +61,7 @@ export const getSystemConfig = async (): Promise<ApiResponse<SystemConfig>> => {
 
     if (error) throw error
 
-    const config = data.reduce((acc, item) => {
+    const config = data.reduce((acc: any, item: any) => {
       acc[item.config_key as keyof SystemConfig] = item.config_value
       return acc
     }, {} as SystemConfig)

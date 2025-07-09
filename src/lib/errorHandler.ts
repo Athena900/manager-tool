@@ -81,7 +81,8 @@ export function parseError(error: unknown): AppError {
 
   // Supabaseエラーの場合
   if (isSupabaseError(error)) {
-    const mapping = SUPABASE_ERROR_MAP[error.code] || SUPABASE_ERROR_MAP[error.error_description] || {
+    const mapping = SUPABASE_ERROR_MAP[error.code] || 
+      (error.error_description && SUPABASE_ERROR_MAP[error.error_description]) || {
       type: ErrorType.DATABASE,
       userMessage: 'データベースエラーが発生しました'
     }
@@ -189,8 +190,8 @@ export function createErrorResponse<T>(error: unknown, context?: string): { data
     data: null,
     error: {
       message: appError.userMessage,
-      code: appError.code,
-      details: appError.details
+      code: appError.code || undefined,
+      details: appError.details || undefined
     },
     success: false
   }
