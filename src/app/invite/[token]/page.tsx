@@ -5,14 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { UserPlus, CheckCircle, AlertCircle, Clock, Mail, Store } from 'lucide-react'
 import { acceptInvitation } from '@/lib/stores'
 import { supabase } from '@/lib/supabase'
-
-interface InvitePageState {
-  loading: boolean
-  error: string | null
-  success: boolean
-  user: any
-  invitation: any
-}
+import type { InvitePageState, StoreInvitation, User, UserRole } from '@/types'
 
 export default function InvitePage() {
   const params = useParams()
@@ -110,13 +103,13 @@ export default function InvitePage() {
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
-      const { data: storeId, error } = await acceptInvitation(params.token as string)
+      const response = await acceptInvitation(params.token as string)
       
-      if (error) {
+      if (!response.success || response.error) {
         setState(prev => ({ 
           ...prev, 
           loading: false, 
-          error: error.message || '招待の受け入れに失敗しました' 
+          error: response.error?.message || '招待の受け入れに失敗しました' 
         }))
         return
       }
@@ -125,7 +118,7 @@ export default function InvitePage() {
       
       // 成功後、店舗ページへリダイレクト
       setTimeout(() => {
-        router.push(`/?store=${storeId}`)
+        router.push(`/?store=${response.data?.storeId}`)
       }, 2000)
       
     } catch (err) {
@@ -138,7 +131,7 @@ export default function InvitePage() {
     }
   }
 
-  const getRoleDisplay = (role: string) => {
+  const getRoleDisplay = (role: UserRole) => {
     switch (role) {
       case 'owner': return 'オーナー'
       case 'manager': return 'マネージャー'
@@ -147,7 +140,7 @@ export default function InvitePage() {
     }
   }
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role: UserRole) => {
     switch (role) {
       case 'owner': return 'text-blue-600 bg-blue-50'
       case 'manager': return 'text-green-600 bg-green-50'

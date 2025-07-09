@@ -3,28 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronDown, Store, Users, Calendar } from 'lucide-react'
 import { getUserStores } from '@/lib/stores'
-
-interface Store {
-  id: string
-  name: string
-  owner_id: string
-  user_role: string
-  joined_at: string
-  created_at: string
-}
-
-interface StoreSelectorProps {
-  currentStoreId: string | null
-  onStoreChange: (storeId: string | null) => void
-  disabled?: boolean
-}
+import type { StoreWithRole, StoreSelectorProps } from '@/types'
 
 export default function StoreSelector({ 
   currentStoreId, 
   onStoreChange, 
   disabled = false 
 }: StoreSelectorProps) {
-  const [stores, setStores] = useState<Store[]>([])
+  const [stores, setStores] = useState<StoreWithRole[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [isOpen, setIsOpen] = useState(false)
@@ -38,19 +24,19 @@ export default function StoreSelector({
       setLoading(true)
       setError('')
       
-      const { data, error: storeError } = await getUserStores()
+      const response = await getUserStores()
       
-      if (storeError) {
+      if (!response.success || response.error) {
         setError('店舗一覧の取得に失敗しました')
-        console.error('店舗一覧取得エラー:', storeError)
+        console.error('店舗一覧取得エラー:', response.error)
         return
       }
       
-      setStores(data || [])
+      setStores(response.data || [])
       
       // 店舗が1つだけの場合は自動選択
-      if (data?.length === 1 && !currentStoreId) {
-        onStoreChange(data[0].id)
+      if (response.data?.length === 1 && !currentStoreId) {
+        onStoreChange(response.data[0].id)
       }
       
     } catch (err) {

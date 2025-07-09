@@ -3,13 +3,7 @@
 import React, { useState } from 'react'
 import { X, Mail, UserPlus, Copy, CheckCircle, AlertCircle } from 'lucide-react'
 import { createInvitation } from '@/lib/stores'
-
-interface InviteModalProps {
-  storeId: string
-  storeName: string
-  onClose: () => void
-  onSuccess: (inviteLink: string) => void
-}
+import type { InviteModalProps, UserRole } from '@/types'
 
 export default function InviteModal({ 
   storeId, 
@@ -18,7 +12,7 @@ export default function InviteModal({
   onSuccess 
 }: InviteModalProps) {
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'staff' | 'manager'>('staff')
+  const [role, setRole] = useState<UserRole>('staff')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [inviteLink, setInviteLink] = useState('')
@@ -30,16 +24,18 @@ export default function InviteModal({
     setError('')
 
     try {
-      const { data, error: inviteError } = await createInvitation(storeId, email, role)
+      const response = await createInvitation(storeId, email, role)
       
-      if (inviteError) {
-        setError(inviteError.message || '招待の送信に失敗しました')
+      if (!response.success || response.error) {
+        setError(response.error?.message || '招待の送信に失敗しました')
         return
       }
       
-      const generatedLink = `${window.location.origin}/invite/${data.token}`
-      setInviteLink(generatedLink)
-      onSuccess(generatedLink)
+      if (response.data) {
+        const generatedLink = `${window.location.origin}/invite/${response.data.token}`
+        setInviteLink(generatedLink)
+        onSuccess(generatedLink)
+      }
       
     } catch (err) {
       console.error('招待作成エラー:', err)
@@ -133,7 +129,7 @@ export default function InviteModal({
                       type="radio"
                       value="staff"
                       checked={role === 'staff'}
-                      onChange={(e) => setRole(e.target.value as 'staff' | 'manager')}
+                      onChange={(e) => setRole(e.target.value as UserRole)}
                       className="sr-only"
                     />
                     <div className="flex-1">
@@ -155,7 +151,7 @@ export default function InviteModal({
                       type="radio"
                       value="manager"
                       checked={role === 'manager'}
-                      onChange={(e) => setRole(e.target.value as 'staff' | 'manager')}
+                      onChange={(e) => setRole(e.target.value as UserRole)}
                       className="sr-only"
                     />
                     <div className="flex-1">
