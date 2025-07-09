@@ -14,6 +14,7 @@ import { authService } from '@/lib/auth'
 import StoreSelector from '@/components/StoreSelector'
 import InviteModal from '@/components/InviteModal'
 import AdminPanel from '@/components/admin/AdminPanel'
+import { Button } from '@/components/ui'
 
 interface Sale {
   id: string
@@ -723,14 +724,22 @@ function BarSalesManager() {
 
   return (
     <div className={`min-h-screen ${theme.bg} p-4 transition-colors duration-300`}>
-      {/* 緊急デバッグボタン（固定位置） */}
-      <div className="fixed top-4 right-4 z-50">
+      {/* 開発者ツール（固定位置） */}
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
         <button
           onClick={() => setShowDebugTools(!showDebugTools)}
           className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold shadow-lg hover:bg-red-700 transition-colors flex items-center gap-2"
         >
           🔧 DEBUG
         </button>
+        <a
+          href="/ui-showcase"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
+        >
+          🎨 UI
+        </a>
       </div>
 
       {/* 緊急RLS診断ツール（モーダル） */}
@@ -906,17 +915,19 @@ function BarSalesManager() {
                 <Download size={16} />
                 <span className="hidden sm:inline">CSV出力</span>
               </button>
-              <button
+              <Button
                 onClick={() => setShowForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center gap-2 transition-colors text-sm sm:text-base"
-                disabled={isLoading}
+                variant="primary"
+                size="lg"
+                loading={isLoading}
+                leftIcon={<Plus size={20} />}
+                className="px-4 sm:px-6"
               >
-                <Plus size={20} />
                 <span className="sm:hidden">追加</span>
                 <span className="hidden sm:inline">売上を追加</span>
-              </button>
+              </Button>
               {showStoreFeatures && (
-                <button
+                <Button
                   onClick={() => {
                     if (!currentStoreId) {
                       alert('招待機能を使用するには、まず店舗を選択してください。\n\n現在は実証実験モードのため、店舗機能は準備中です。')
@@ -924,18 +935,22 @@ function BarSalesManager() {
                     }
                     setShowInviteModal(true)
                   }}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                  variant="warning"
+                  size="md"
+                  leftIcon={<UserPlus size={16} />}
+                  className="px-3 sm:px-4"
                 >
-                  <UserPlus size={16} />
                   <span className="hidden sm:inline">招待</span>
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors"
+                variant="danger"
+                size="md"
+                className="p-2"
               >
                 <LogOut size={16} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1405,7 +1420,7 @@ function BarSalesManager() {
               </div>
               
               <div className="flex justify-end gap-3 mt-6">
-                <button
+                <Button
                   onClick={() => {
                     setShowForm(false)
                     setEditingId(null)
@@ -1421,18 +1436,18 @@ function BarSalesManager() {
                       updatedBy: ''
                     })
                   }}
-                  className={`px-4 py-2 border ${theme.border} rounded-md ${theme.text} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                  variant="secondary"
                   disabled={isLoading}
                 >
                   キャンセル
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleSubmit}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                  disabled={isLoading}
+                  variant="primary"
+                  loading={isLoading}
                 >
-                  {isLoading ? '保存中...' : (editingId ? '更新' : '保存')}
-                </button>
+                  {editingId ? '更新' : '保存'}
+                </Button>
               </div>
             </div>
           </div>
