@@ -232,9 +232,9 @@ export default function StoreSelector({
         </div>
       )}
 
-      {/* 開発中メッセージ（実証実験期間中のみ表示） */}
-      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-        🚧 開発中: 実証実験終了後に利用可能になります
+      {/* システム情報 */}
+      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+        💼 店舗ベース売上管理システム
       </div>
     </div>
   )

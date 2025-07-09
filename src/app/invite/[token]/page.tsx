@@ -335,10 +335,10 @@ export default function InvitePage() {
               </button>
             </div>
 
-            {/* 開発中メッセージ */}
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="text-sm text-yellow-800">
-                🚧 開発中: 実証実験終了後に利用可能になります
+            {/* システム情報 */}
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="text-sm text-green-800">
+                🎉 招待を受け入れると、店舗の売上データにアクセスできます
               </div>
             </div>
           </div>

@@ -283,10 +283,10 @@ export default function InviteModal({
           )}
         </div>
 
-        {/* 開発中メッセージ */}
-        <div className="mx-6 mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="text-sm text-yellow-800">
-            🚧 開発中: 実証実験終了後に利用可能になります
+        {/* システム情報 */}
+        <div className="mx-6 mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="text-sm text-blue-800">
+            ✨ 招待制店舗管理システム - スタッフを安全に招待できます
           </div>
         </div>
       </div>
