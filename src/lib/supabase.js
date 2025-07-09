@@ -86,12 +86,18 @@ export const salesAPI = {
         throw new Error('データ取得でセキュリティエラーが発生しました')
       }
     } else {
-      // 実証実験モード: 3人のデータのみ許可
+      // 実証実験モード: 3人のデータのみ許可（データのuser_idが3人のいずれかであれば OK）
       const invalidData = data.filter(item => !pilotUsers.includes(item.user_id))
       if (invalidData.length > 0) {
         console.error('🚨 セキュリティエラー: 実証実験参加者以外のデータが含まれています')
         console.error('無効データ:', invalidData)
         throw new Error('データ取得でセキュリティエラーが発生しました')
+      }
+      
+      // 実証実験モード: 現在のユーザーが3人のいずれかであることを確認
+      if (!pilotUsers.includes(user.id)) {
+        console.error('🚨 セキュリティエラー: 実証実験参加者以外のアクセスです')
+        throw new Error('実証実験参加者のみアクセス可能です')
       }
     }
     

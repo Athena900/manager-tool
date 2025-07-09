@@ -193,29 +193,61 @@ function BarSalesManager() {
         const userIds = Array.from(new Set(salesData.map(sale => sale.user_id).filter(Boolean)))
         console.log('取得されたデータのuser_id:', userIds)
         
-        if (userIds.length > 1) {
-          console.error('🚨 データセキュリティエラー: 複数のuser_idが混在')
-          console.error('期待:', [user.id])
-          console.error('実際:', userIds)
-          
-          // 不正データのフィルタリングで緊急対応
-          const validData = salesData.filter(sale => sale.user_id === user.id)
-          console.warn(`🚨 緊急対応: ${salesData.length}件から${validData.length}件にフィルタリング`)
-          setSales(validData)
-          setIsConnected(false)
-          return
-        }
+        // 実証実験モードの判定
+        const pilotUsers = [
+          '635c35fb-0159-4bb9-9ab8-8933eb04ee31',  // オーナー
+          '56d64ad6-165a-4841-bfcd-a78329f322e5',  // スタッフ1
+          '0aba16a3-531d-4f7a-a9a3-6ca29537d349'   // スタッフ2
+        ]
+        const isPilotMode = pilotUsers.includes(user.id)
         
-        if (userIds.length === 1 && userIds[0] !== user.id) {
-          console.error('🚨 データセキュリティエラー: 他ユーザーのデータが含まれています')
-          console.error('期待:', user.id)
-          console.error('実際:', userIds[0])
+        if (!isPilotMode) {
+          // 通常モード: 自分のデータのみ
+          if (userIds.length > 1) {
+            console.error('🚨 データセキュリティエラー: 複数のuser_idが混在')
+            console.error('期待:', [user.id])
+            console.error('実際:', userIds)
+            
+            // 不正データのフィルタリングで緊急対応
+            const validData = salesData.filter(sale => sale.user_id === user.id)
+            console.warn(`🚨 緊急対応: ${salesData.length}件から${validData.length}件にフィルタリング`)
+            setSales(validData)
+            setIsConnected(false)
+            return
+          }
           
-          // 他ユーザーのデータの場合は空にする
-          console.warn('🚨 緊急対応: 他ユーザーデータをブロック')
-          setSales([])
-          setIsConnected(false)
-          return
+          if (userIds.length === 1 && userIds[0] !== user.id) {
+            console.error('🚨 データセキュリティエラー: 他ユーザーのデータが含まれています')
+            console.error('期待:', user.id)
+            console.error('実際:', userIds[0])
+            
+            // 他ユーザーのデータの場合は空にする
+            console.warn('🚨 緊急対応: 他ユーザーデータをブロック')
+            setSales([])
+            setIsConnected(false)
+            return
+          }
+        } else {
+          // 実証実験モード: 3人のデータ共有
+          console.log('🧪 実証実験モード: データ共有中')
+          console.log('参加者:', pilotUsers)
+          console.log('データのuser_id:', userIds)
+          
+          // 実証実験参加者以外のデータがあるかチェック
+          const invalidUserIds = userIds.filter(uid => !pilotUsers.includes(uid))
+          if (invalidUserIds.length > 0) {
+            console.error('🚨 セキュリティエラー: 実証実験参加者以外のデータが含まれています')
+            console.error('無効なuser_id:', invalidUserIds)
+            
+            // 有効なデータのみフィルタリング
+            const validData = salesData.filter(sale => pilotUsers.includes(sale.user_id))
+            console.warn(`🚨 緊急対応: ${salesData.length}件から${validData.length}件にフィルタリング`)
+            setSales(validData)
+            setIsConnected(false)
+            return
+          }
+          
+          console.log('✅ 実証実験モード: データ共有正常')
         }
         
         console.log('✅ データセキュリティ検証完了: 全て正常')
