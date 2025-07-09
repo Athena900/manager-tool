@@ -724,22 +724,14 @@ function BarSalesManager() {
 
   return (
     <div className={`min-h-screen ${theme.bg} p-4 transition-colors duration-300`}>
-      {/* 開発者ツール（固定位置） */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+      {/* 緊急デバッグボタン（固定位置） */}
+      <div className="fixed top-4 right-4 z-50">
         <button
           onClick={() => setShowDebugTools(!showDebugTools)}
           className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold shadow-lg hover:bg-red-700 transition-colors flex items-center gap-2"
         >
           🔧 DEBUG
         </button>
-        <a
-          href="/ui-showcase"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold shadow-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
-        >
-          🎨 UI
-        </a>
       </div>
 
       {/* 緊急RLS診断ツール（モーダル） */}
