@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts'
-import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi, Trash2 } from 'lucide-react'
+import { TrendingUp, Users, DollarSign, Plus, Edit3, Download, Moon, Sun, BarChart3, Activity, Target, LogOut, Lock, Cloud, CloudOff, Wifi, Trash2, UserPlus } from 'lucide-react'
 import { supabase, salesAPI, rlsDiagnostic } from '../lib/supabase'
 import AuthGuard from '@/components/auth/AuthGuard'
 import { authService } from '@/lib/auth'
@@ -11,6 +11,8 @@ import RealtimeDebug from '@/components/debug/RealtimeDebug'
 import AuthDebug from '@/components/debug/AuthDebug'
 import DataIsolationTest from '@/components/debug/DataIsolationTest'
 import RLSDiagnostic from '@/components/debug/RLSDiagnostic'
+import StoreSelector from '@/components/StoreSelector'
+import InviteModal from '@/components/InviteModal'
 
 interface Sale {
   id: string
@@ -48,6 +50,11 @@ function BarSalesManager() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [darkMode, setDarkMode] = useState(false)
+  
+  // 招待制システム用のstate（非表示状態）
+  const [currentStoreId, setCurrentStoreId] = useState<string | null>(null)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showStoreFeatures, setShowStoreFeatures] = useState(false) // 実証実験終了後にtrue
   const [activeTab, setActiveTab] = useState('overview')
   const [isConnected, setIsConnected] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
@@ -170,8 +177,8 @@ function BarSalesManager() {
       
       console.log('認証確認完了:', user.id)
       
-      // 安全なデータ取得
-      const salesData = await salesAPI.fetchAll()
+      // 安全なデータ取得（店舗ベースまたは従来方式）
+      const salesData = await salesAPI.fetchAll(currentStoreId)
       console.log(`データ取得完了: ${salesData.length}件`)
       
       // データのセキュリティ検証とRLS緊急診断
@@ -889,6 +896,15 @@ function BarSalesManager() {
                 <span className="sm:hidden">追加</span>
                 <span className="hidden sm:inline">売上を追加</span>
               </button>
+              {showStoreFeatures && (
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                >
+                  <UserPlus size={16} />
+                  <span className="hidden sm:inline">招待</span>
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors"
@@ -898,6 +914,15 @@ function BarSalesManager() {
             </div>
           </div>
         </div>
+
+        {/* 店舗選択（非表示状態）*/}
+        {showStoreFeatures && (
+          <StoreSelector
+            currentStoreId={currentStoreId}
+            onStoreChange={setCurrentStoreId}
+            disabled={false}
+          />
+        )}
 
         <div className={`${theme.card} rounded-lg shadow-md mb-6`}>
           <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
@@ -1445,6 +1470,19 @@ function BarSalesManager() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* 招待モーダル（非表示状態）*/}
+        {showStoreFeatures && showInviteModal && currentStoreId && (
+          <InviteModal
+            storeId={currentStoreId}
+            storeName="開発中店舗"
+            onClose={() => setShowInviteModal(false)}
+            onSuccess={(inviteLink) => {
+              console.log('招待リンク作成成功:', inviteLink)
+              setShowInviteModal(false)
+            }}
+          />
         )}
       </div>
     </div>
